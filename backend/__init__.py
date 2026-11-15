@@ -1,1 +1,3 @@
-"""ClipIt Studio Backend Package"""
+"""
+AI Clipper Platform Backend Package
+"""

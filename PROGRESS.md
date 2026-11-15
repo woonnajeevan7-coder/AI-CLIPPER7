@@ -28,10 +28,15 @@
   - [x] Silence trimming filter (`silenceremove`)
   - [x] Background music ducking filter graph (`volume` + `amix`)
   - [x] Pytest suite covering all motion and polish features passing
-- [ ] **Phase 5: Platform Backend** (Pending)
-  - FastAPI `/api/v1` + Celery/Redis
-  - PostgreSQL + Cloudflare R2 storage
-  - SSE real-time pipeline telemetry
+- [x] **Phase 5: Platform Backend** (COMPLETED)
+  - [x] FastAPI REST API (`/api/v1`) with JWT auth, refresh tokens, and user profile inspection
+  - [x] Idempotent Celery tasks with exponential-backoff retries and dead-letter state
+  - [x] Complete PostgreSQL models (users, projects, jobs, transcripts, clips, plans, usage, publish_targets, clip_metrics)
+  - [x] Cloudflare R2 / S3 storage with presigned URLs and local fallback
+  - [x] Server-Sent Events (SSE) live progress stream (`/api/v1/jobs/{id}/stream`)
+  - [x] Multi-tier plan limits (Free, Pro, Agency) and usage tracking
+  - [x] Rigorous SSRF protection blocking private, loopback, link-local IPs and untrusted domains
+  - [x] Production Docker Compose (api, worker, redis, postgres) and Dockerfile
 - [ ] **Phase 6: Product Frontend** (Pending)
   - Next.js dashboard + transcript-based video trimming editor
 - [ ] **Phase 7: Growth Features** (Pending)

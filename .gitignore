@@ -26,3 +26,6 @@ Thumbs.db
 temp_media/
 output_clips/
 .pytest_cache/
+
+# Local SQLite database
+*.db
