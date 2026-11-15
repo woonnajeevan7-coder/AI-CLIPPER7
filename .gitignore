@@ -17,3 +17,12 @@ WebData/
 # Scratch and OS metadata
 .DS_Store
 Thumbs.db
+
+# Secrets and environment
+.env
+*.env
+
+# Runtime media directories
+temp_media/
+output_clips/
+.pytest_cache/
