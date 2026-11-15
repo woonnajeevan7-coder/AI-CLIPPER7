@@ -11,6 +11,7 @@ from .judge import JudgeAgent
 from .boundary import BoundarySnapper
 from .framing import SmartFramingAgent
 from .polish import KeywordEmojiTagger, PunchInPlanner, AudioPolisher
+from .growth import MultiLanguageEngine, ChannelWatcherAgent, OfficialPublisherAgent
 
 __all__ = [
     "TranscriberAgent",
@@ -23,4 +24,7 @@ __all__ = [
     "KeywordEmojiTagger",
     "PunchInPlanner",
     "AudioPolisher",
+    "MultiLanguageEngine",
+    "ChannelWatcherAgent",
+    "OfficialPublisherAgent",
 ]
