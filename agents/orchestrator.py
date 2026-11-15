@@ -248,7 +248,9 @@ class ClipperOrchestratorAgent:
                     "data": clip,
                     "layout": crop_plan.layout,
                     "punch_in": enable_punch_in,
-                    "path": out_filepath
+                    "path": out_filepath,
+                    "source_video_path": str(video_path),
+                    "words": [w.model_dump() if hasattr(w, "model_dump") else w for w in clip_words] if clip_words else []
                 })
 
         yield {"step": 4, "agent": "ClipperOrchestratorAgent", "status": f"Completed! Rendered {len(rendered)} shorts.", "progress": 100, "result": rendered}

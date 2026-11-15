@@ -37,10 +37,15 @@ if "brand_kit" not in st.session_state:
         "primary_color": "#FFD700",
         "font_family": "Montserrat-Bold",
         "default_caption_style": "hormozi",
-        "watermark_text": ""
+        "watermark_text": "@brand",
+        "logo_data": None
     }
 if "active_clip_idx" not in st.session_state:
     st.session_state.active_clip_idx = 0
+if "active_plan" not in st.session_state:
+    st.session_state.active_plan = "Pro"
+if "source_video_path" not in st.session_state:
+    st.session_state.source_video_path = None
 
 # Custom Styling (Dark-mode first, glassmorphism, responsive cards)
 st.markdown("""
@@ -110,7 +115,7 @@ st.markdown("""
 st.markdown('<div class="main-title">🎬 AI Clipper Pro Studio</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Enterprise Short-Form Repurposing Engine · Face Tracking · Dynamic Karaoke · Multimodal Curation</div>', unsafe_allow_html=True)
 
-DEFAULT_GROQ_KEY = os.getenv("GROQ_API_KEY", "gsk_mock_redacted_security_key_000000000000000000000000")
+DEFAULT_GROQ_KEY = os.getenv("GROQ_API_KEY", "")
 
 # Sidebar Configuration
 with st.sidebar:
@@ -196,6 +201,17 @@ with tab_studio:
         )
     else:
         uploaded_file = st.file_uploader("Upload MP4 / MOV Video", type=["mp4", "mov", "mkv"])
+
+    with st.expander("⚙️ Advanced Generation Settings", expanded=False):
+        st.caption("Customize clip count, target duration window, and styling overrides:")
+        exp_col1, exp_col2 = st.columns(2)
+        with exp_col1:
+            st.write(f"• **Target Clips:** {num_clips}")
+            st.write(f"• **Duration:** {min_dur}s – {max_dur}s")
+        with exp_col2:
+            st.write(f"• **Caption Style:** {selected_caption_style.title()}")
+            st.write(f"• **Hardware NVENC:** {'Enabled' if enable_nvenc else 'CPU Fallback'}")
+        st.info("Tip: You can adjust all detailed parameters anytime in the sidebar.")
 
     st.markdown("---")
 
@@ -287,19 +303,19 @@ with tab_studio:
                     
                     col_dl, col_ed = st.columns(2)
                     with col_dl:
-                        with open(c_path, "rb") as vf:
-                            st.download_button(
-                                label=f"⬇️ Download",
-                                data=vf,
-                                file_name=c_path.name,
-                                mime="video/mp4",
-                                key=f"dl_{i}",
-                                use_container_width=True
-                            )
+                        video_bytes = c_path.read_bytes()
+                        st.download_button(
+                            label=f"⬇️ Download",
+                            data=video_bytes,
+                            file_name=c_path.name,
+                            mime="video/mp4",
+                            key=f"dl_{i}",
+                            use_container_width=True
+                        )
                     with col_ed:
                         if st.button("✂️ Edit in Studio", key=f"edit_{i}", use_container_width=True):
                             st.session_state.active_clip_idx = i
-                            st.info(f"Loaded '{c_data.get('title')}' into Transcript-Based Editor! Click the 'Transcript-Based Editor' tab above.")
+                            st.success(f"Loaded '{c_data.get('title')}' into Editor! Click the **'✂️ Transcript-Based Editor'** tab above to customize.")
 
 # -------------------------------------------------------------
 # TAB 2: TRANSCRIPT-BASED CLIP EDITOR
@@ -347,17 +363,38 @@ with tab_editor:
             orig_end = float(c_data.get("end_seconds", orig_start + 30.0))
             
             trim_start = st.number_input("Start Timestamp (seconds)", value=orig_start, min_value=0.0, step=0.5)
-            trim_end = st.number_input("End Timestamp (seconds)", value=orig_end, min_value=trim_start + 5.0, step=0.5)
+            trim_end = st.number_input("End Timestamp (seconds)", value=orig_end, min_value=trim_start + 3.0, step=0.5)
             new_duration = round(trim_end - trim_start, 2)
-            st.caption(f"New Duration: **{new_duration}s**")
+            st.caption(f"Trimmed Range: **{trim_start}s – {trim_end}s** (Duration: **{new_duration}s**)")
 
-            # Word-level deletion preview
-            sample_words = c_data.get("hook", "Check out this incredible moment from the podcast").split()
-            st.markdown("#### 🔤 Transcript Word Delete (Click to Toggle)")
-            st.markdown(
-                " ".join([f"<span class='word-pill'>✂️ {w}</span>" for w in sample_words]),
-                unsafe_allow_html=True
+            # Interactive word-level deletion
+            raw_words = current_clip.get("words", [])
+            if raw_words:
+                word_options = [w.get("word", "") if isinstance(w, dict) else getattr(w, "word", str(w)) for w in raw_words]
+            else:
+                word_options = c_data.get("hook", "Check out this incredible moment from the podcast").split()
+
+            st.markdown("#### 🔤 Interactive Transcript Word Filter")
+            st.caption("Select words to cut or omit from the karaoke captions:")
+            
+            excluded_key = f"excluded_{selected_clip_idx}"
+            default_excluded = st.session_state.get(excluded_key, [])
+            excluded_words = st.multiselect(
+                "Omit words from subtitles:",
+                options=word_options,
+                default=[w for w in default_excluded if w in word_options],
+                key=f"ms_words_{selected_clip_idx}"
             )
+            st.session_state[excluded_key] = excluded_words
+
+            # Live preview of transcript text
+            pill_html = []
+            for w in word_options:
+                if w in excluded_words:
+                    pill_html.append(f"<span class='word-pill-deleted'>{w}</span>")
+                else:
+                    pill_html.append(f"<span class='word-pill'>{w}</span>")
+            st.markdown(" ".join(pill_html), unsafe_allow_html=True)
 
             if st.button("⚡ Re-Render Short with New Settings", type="primary", use_container_width=True):
                 with st.spinner("Re-rendering short with updated headline & boundaries..."):
@@ -367,19 +404,66 @@ with tab_editor:
                     )
                     
                     re_rendered_path = PROJECT_ROOT / "output_clips" / f"edited_{int(time.time())}.mp4"
-                    success = editor.render_short(
-                        source_video_path=c_path,
-                        start_seconds=0.0,
-                        end_seconds=new_duration,
-                        headline=new_headline,
-                        output_path=re_rendered_path,
-                        use_nvenc=True
-                    )
+                    source_vid = current_clip.get("source_video_path")
+                    
+                    # If original master video is available, re-render from source
+                    if source_vid and Path(source_vid).exists():
+                        new_ass_path = PROJECT_ROOT / "temp_media" / f"re_karaoke_{int(time.time())}.ass"
+                        filtered_words = []
+                        if raw_words:
+                            for rw in raw_words:
+                                w_text = rw.get("word", "") if isinstance(rw, dict) else getattr(rw, "word", "")
+                                w_start = rw.get("start", 0.0) if isinstance(rw, dict) else getattr(rw, "start", 0.0)
+                                w_end = rw.get("end", 0.0) if isinstance(rw, dict) else getattr(rw, "end", 0.0)
+                                if w_start >= trim_start and w_end <= trim_end and w_text not in excluded_words:
+                                    filtered_words.append(WordTimestamp(word=w_text, start=w_start, end=w_end))
+                        
+                        burn_sub = None
+                        if filtered_words:
+                            generate_karaoke_ass(
+                                words=filtered_words,
+                                output_ass_path=new_ass_path,
+                                style_preset=edit_style,
+                                clip_start_offset=trim_start
+                            )
+                            burn_sub = new_ass_path
+
+                        success = editor.render_short(
+                            source_video_path=Path(source_vid),
+                            start_seconds=trim_start,
+                            end_seconds=trim_end,
+                            headline=new_headline,
+                            output_path=re_rendered_path,
+                            ass_subtitle_path=burn_sub,
+                            use_nvenc=True
+                        )
+                        if new_ass_path.exists():
+                            try:
+                                new_ass_path.unlink()
+                            except Exception:
+                                pass
+                    else:
+                        # Fallback: clean stream slice from already-rendered short without re-padding
+                        import subprocess
+                        ffmpeg_cmd = [
+                            str(PROJECT_ROOT / "ffmpeg.exe"),
+                            "-y",
+                            "-ss", str(max(0.0, trim_start - orig_start)),
+                            "-t", str(new_duration),
+                            "-i", str(c_path),
+                            "-c", "copy",
+                            str(re_rendered_path)
+                        ]
+                        res = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+                        success = (res.returncode == 0 and re_rendered_path.exists())
+
                     if success and re_rendered_path.exists():
-                        st.success("Re-rendered successfully!")
+                        st.success("🎉 Re-rendered successfully!")
                         st.session_state.rendered_clips[selected_clip_idx]["path"] = re_rendered_path
                         st.session_state.rendered_clips[selected_clip_idx]["data"]["headline"] = new_headline
                         st.session_state.rendered_clips[selected_clip_idx]["data"]["duration"] = new_duration
+                        st.session_state.rendered_clips[selected_clip_idx]["data"]["start_seconds"] = trim_start
+                        st.session_state.rendered_clips[selected_clip_idx]["data"]["end_seconds"] = trim_end
                         st.rerun()
                     else:
                         st.error("Failed to re-render short.")
@@ -400,20 +484,25 @@ with tab_brand:
             ["Montserrat-Bold", "BebasNeue-Regular", "Poppins-Bold"],
             index=0
         )
-        watermark_text = st.text_input("Safe-Area Watermark Handle (e.g. @yourhandle)", value=st.session_state.brand_kit["watermark_text"])
+        watermark_text = st.text_input("Safe-Area Watermark Handle (e.g. @yourhandle)", value=st.session_state.brand_kit.get("watermark_text", "@brand"))
 
     with col_bk2:
         logo_file = st.file_uploader("Upload Brand Logo (PNG with transparency)", type=["png", "svg"])
+        if logo_file:
+            st.session_state.brand_kit["logo_data"] = logo_file.getvalue()
+            st.image(logo_file, caption="Active Logo Watermark", width=120)
+
         st.markdown("#### 📱 Safe-Area Mobile Layout Preview")
+        font_clean = font_family.split("-")[0]
         st.markdown(f"""
-        <div style="width: 240px; height: 426px; background-color: #020617; border: 2px dashed {primary_color}; border-radius: 16px; margin: 0 auto; position: relative; padding: 12px; text-align: center;">
-            <div style="background-color: rgba(0,0,0,0.7); padding: 4px; border-radius: 4px; font-weight: bold; font-size: 10px; margin-top: 20px;">
+        <div style="width: 240px; height: 426px; background-color: #020617; border: 2px dashed {primary_color}; border-radius: 16px; margin: 0 auto; position: relative; padding: 12px; text-align: center; font-family: '{font_clean}', sans-serif;">
+            <div style="background-color: rgba(0,0,0,0.7); color: white; padding: 6px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 20px; border-left: 3px solid {primary_color};">
                 VIRAL HEADLINE BANNER
             </div>
-            <div style="position: absolute; bottom: 60px; left: 10px; right: 10px; font-weight: bold; font-size: 11px; color: {primary_color};">
+            <div style="position: absolute; bottom: 65px; left: 10px; right: 10px; font-weight: 800; font-size: 13px; color: {primary_color}; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
                 KARAOKE ACTIVE WORD
             </div>
-            <div style="position: absolute; bottom: 20px; left: 0; right: 0; font-size: 10px; color: #94a3b8;">
+            <div style="position: absolute; bottom: 20px; left: 0; right: 0; font-size: 10px; color: #94a3b8; font-weight: 600;">
                 {watermark_text or '@brand'}
             </div>
         </div>
@@ -426,7 +515,7 @@ with tab_brand:
             "font_family": font_family,
             "watermark_text": watermark_text
         })
-        st.success("Brand kit updated successfully!")
+        st.success("🎉 Brand kit preferences saved successfully!")
 
 # -------------------------------------------------------------
 # TAB 4: USAGE & BILLING (STRIPE-READY)
@@ -435,13 +524,15 @@ with tab_billing:
     st.subheader("💳 Usage, Entitlements & Subscription")
     st.caption("Manage your subscription tier, track monthly clip quotas, and upgrade with Stripe.")
 
+    active_tier = st.session_state.get("active_plan", "Pro")
+    
     # Current Usage Bar
     st.markdown("#### 📊 Current Monthly Quota")
     quota_used = len(st.session_state.rendered_clips)
-    quota_limit = 100
+    quota_limit = 100 if active_tier == "Pro" else (500 if active_tier == "Agency" else 5)
     progress_val = min(1.0, quota_used / quota_limit)
     st.progress(progress_val)
-    st.caption(f"**{quota_used} / {quota_limit} Clips Created** this billing cycle (Active Plan: **Pro**)")
+    st.caption(f"**{quota_used} / {quota_limit} Clips Created** this billing cycle (Active Plan: **{active_tier}**)")
 
     st.markdown("---")
     st.markdown("#### 📦 Choose Your Plan")
@@ -449,8 +540,8 @@ with tab_billing:
     col_p1, col_p2, col_p3 = st.columns(3)
 
     with col_p1:
-        st.markdown("""
-        <div class="plan-card">
+        st.markdown(f"""
+        <div class="plan-card" style="{'border: 2px solid #38bdf8;' if active_tier == 'Free' else ''}">
             <h3>Free Starter</h3>
             <h2>$0 <small>/mo</small></h2>
             <p>For casual creators</p>
@@ -461,11 +552,17 @@ with tab_billing:
             <p>❌ Watermark included</p>
         </div>
         """, unsafe_allow_html=True)
-        st.button("Current Plan", disabled=True, key="btn_free", use_container_width=True)
+        if active_tier == "Free":
+            st.button("⭐ Current Plan", disabled=True, key="btn_free", use_container_width=True)
+        else:
+            if st.button("Downgrade to Free", key="btn_free_switch", use_container_width=True):
+                st.session_state.active_plan = "Free"
+                st.toast("Switched to Free Starter plan")
+                st.rerun()
 
     with col_p2:
-        st.markdown("""
-        <div class="plan-card" style="border: 2px solid #8b5cf6;">
+        st.markdown(f"""
+        <div class="plan-card" style="{'border: 2px solid #8b5cf6; box-shadow: 0 0 15px rgba(139,92,246,0.3);' if active_tier == 'Pro' else ''}">
             <h3>⭐ Pro Creator</h3>
             <h2>$29 <small>/mo</small></h2>
             <p>For serious creators & podcasts</p>
@@ -476,13 +573,18 @@ with tab_billing:
             <p>✅ Zero Watermark + Brand Kit</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("💳 Upgrade to Pro (Stripe)", type="primary", key="btn_pro", use_container_width=True):
-            st.balloons()
-            st.info("Stripe Checkout Session created! Redirecting to secure payment portal...")
+        if active_tier == "Pro":
+            st.button("⭐ Current Plan (Active)", disabled=True, key="btn_pro_active", use_container_width=True)
+        else:
+            if st.button("💳 Upgrade to Pro ($29/mo)", type="primary", key="btn_pro_switch", use_container_width=True):
+                st.session_state.active_plan = "Pro"
+                st.balloons()
+                st.toast("🎉 Upgraded to Pro Creator Plan via Stripe!")
+                st.rerun()
 
     with col_p3:
-        st.markdown("""
-        <div class="plan-card">
+        st.markdown(f"""
+        <div class="plan-card" style="{'border: 2px solid #10b981; box-shadow: 0 0 15px rgba(16,185,129,0.3);' if active_tier == 'Agency' else ''}">
             <h3>🏢 Agency / Team</h3>
             <h2>$99 <small>/mo</small></h2>
             <p>For media agencies & channels</p>
@@ -493,5 +595,11 @@ with tab_billing:
             <p>✅ Dedicated NVENC Parallel GPU</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("Contact Sales / Stripe", key="btn_agency", use_container_width=True):
-            st.info("Redirecting to Agency Checkout...")
+        if active_tier == "Agency":
+            st.button("⭐ Current Plan (Active)", disabled=True, key="btn_agency_active", use_container_width=True)
+        else:
+            if st.button("🚀 Upgrade to Agency ($99/mo)", key="btn_agency_switch", use_container_width=True):
+                st.session_state.active_plan = "Agency"
+                st.balloons()
+                st.toast("🎉 Upgraded to Agency / Team Plan!")
+                st.rerun()
