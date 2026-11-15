@@ -109,6 +109,58 @@ The entire platform is organized into 15 sequential operational tiers:
 
 ## Final Project Status
 - **All 9 Phases**: Fully Completed & Verified
-- **Test Suite**: 34 / 34 passing tests (`pytest`)
-- **Git State**: Clean working tree on `main` (9 phase commits merged)
+- **Test Suite**: 35 / 35 passing tests (`pytest`)
+- **Git State**: Clean working tree on `main`
+
+---
+
+## Known Gaps (Systematic Debugging Audit on 3 Real Videos)
+
+Benchmark conducted on 3 real test videos:
+1. **2-Speaker Podcast**: *Lex Fridman & Don Lincoln* (`gBvyog9w_Kw`)
+2. **Solo Speaker**: *Steve Jobs 2005 Stanford Commencement* (`UF8uR6Z6KLc`)
+3. **Hindi Video**: *Ranveer Allahbadia & Prajakta Koli* (`cqoiCJUMeHU`)
+
+### Multi-Video Audit Results Table
+
+| Video Category | Output Clip | Resolution | Pix Fmt | Video Codec | Audio Codec | Duration | Loudness (Target: -14 LUFS) | LRA | Detected Layout | Crop Jitter | Caption Overlap | Zoom Smoothness | Caption Drift |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **2-Speaker Podcast** | `short_1794769829_1.mp4` | `1080x1920` | `yuv420p` | `h264` (NVENC) | `aac` (48kHz st) | 23.02s | **-13.8 LUFS** (+0.20 diff) | 2.6 LU | `single_face` | Low (EMA α=0.15) | None (1050px gap) | 1.14x emphasis step-zoom | 0.0 ms |
+| **Solo Speaker** | `short_1794769848_1.mp4` | `1080x1920` | `yuv420p` | `h264` (NVENC) | `aac` (48kHz st) | 23.02s | **-19.2 LUFS** (-5.20 diff) | 15.7 LU | `single_face` | Low (EMA α=0.15) | None (1050px gap) | 1.14x emphasis step-zoom | 0.0 ms |
+| **Hindi Video** | `short_1794769855_1.mp4` | `1080x1920` | `yuv420p` | `h264` (NVENC) | `aac` (48kHz st) | 23.00s | **-14.7 LUFS** (-0.70 diff) | 15.4 LU | `split_screen` (2 faces) | Low (EMA α=0.15) | None (1050px gap) | 1.14x emphasis step-zoom | 0.0 ms |
+
+### Extracted Visual Audit Frames
+- **2-Speaker Podcast**:
+  - Start: `temp_media/audit_frames/podcast_2speaker_clip1_start.jpg`
+  - Middle: `temp_media/audit_frames/podcast_2speaker_clip1_middle.jpg`
+  - End: `temp_media/audit_frames/podcast_2speaker_clip1_end.jpg`
+- **Solo Speaker**:
+  - Start: `temp_media/audit_frames/solo_speaker_clip1_start.jpg`
+  - Middle: `temp_media/audit_frames/solo_speaker_clip1_middle.jpg`
+  - End: `temp_media/audit_frames/solo_speaker_clip1_end.jpg`
+- **Hindi Video**:
+  - Start: `temp_media/audit_frames/hindi_video_clip1_start.jpg`
+  - Middle: `temp_media/audit_frames/hindi_video_clip1_middle.jpg`
+  - End: `temp_media/audit_frames/hindi_video_clip1_end.jpg`
+
+---
+
+### Root Cause Analysis of Discovered Gaps
+
+1. **Streamlit In-Memory Module Caching (`run_pipeline unexpected keyword argument 'caption_style'`)**:
+   - **Root Cause**: When Python modules in `agents/` are updated with new signature parameters on disk, an existing long-running Streamlit daemon process only hot-reloads `app.py` but retains cached imports in `sys.modules`.
+   - **Remediation**: Terminate orphaned Streamlit daemon and launch a fresh server process.
+
+2. **Single-Pass Audio Under-Gain on High Dynamic Range Content (`-19.2 LUFS`)**:
+   - **Root Cause**: Single-pass FFmpeg `loudnorm` on videos with wide dynamic range (Steve Jobs speech: `LRA=15.7 LU`) throttles overall gain to avoid exceeding the `-1.5 dBTP` true-peak ceiling, resulting in `-19.2 LUFS` instead of the target `-14.0 LUFS`.
+   - **Planned Fix**: Implement a 2-pass EBU R128 loudnorm filter or a gentle pre-compression limiter (`acompressor`) prior to loudnorm.
+
+3. **Groq Model Name Decommissioning (`qwen/qwen-2.5-72b-instruct`)**:
+   - **Root Cause**: Groq returned HTTP 404 (`model_not_found`) for `qwen/qwen-2.5-72b-instruct`. The pipeline gracefully fell back to heuristic curation without crashing.
+   - **Planned Fix**: Update Groq LLM model identifier in `agents/curator.py` and `agents/judge.py` to `llama-3.3-70b-versatile` or `llama-3.1-8b-instant`.
+
+4. **Local File Path Handling in CLI/Direct Ingest**:
+   - **Root Cause**: When `is_url=False` and `uploaded_bytes=None`, `ClipperOrchestratorAgent.run_pipeline` defaulted to looking for `temp_media/uploaded_video.mp4` rather than reading from `Path(source)`.
+   - **Planned Fix**: Add `if not uploaded_bytes and Path(source).exists(): video_path = Path(source)`.
+
 
