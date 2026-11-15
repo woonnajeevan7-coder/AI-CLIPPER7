@@ -48,21 +48,27 @@ export default function TranscriptEditorPage() {
         {/* Right: Word-level Trimming Controls */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
           <div>
-            <h2 className="text-xl font-bold mb-2">Headline Banner</h2>
+            <label htmlFor="headline-input" className="block text-xl font-bold mb-2">
+              Headline Banner
+            </label>
             <input
+              id="headline-input"
               type="text"
               value={headline}
               onChange={(e) => setHeadline(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-purple-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
 
           <div>
-            <h2 className="text-xl font-bold mb-2">Caption Preset</h2>
+            <label htmlFor="caption-preset-select" className="block text-xl font-bold mb-2">
+              Caption Preset
+            </label>
             <select
+              id="caption-preset-select"
               value={captionPreset}
               onChange={(e) => setCaptionPreset(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-purple-500"
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               <option value="hormozi">Hormozi (High Contrast Yellow/White)</option>
               <option value="cyber_cyan">Cyber Cyan (Neon Accent)</option>
@@ -75,12 +81,14 @@ export default function TranscriptEditorPage() {
             <p className="text-xs text-slate-400 mb-3">
               Click any word to delete or restore it. Boundaries re-render instantly without dead air.
             </p>
-            <div className="flex flex-wrap gap-2 p-4 bg-slate-950 rounded-xl border border-slate-800">
+            <div className="flex flex-wrap gap-2 p-4 bg-slate-950 rounded-xl border border-slate-800" role="group" aria-label="Transcript words to toggle">
               {words.map((w) => (
                 <button
                   key={w.id}
                   onClick={() => toggleWord(w.id)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${
+                  aria-pressed={!w.deleted}
+                  aria-label={`${w.text} (${w.deleted ? 'deleted, click to restore' : 'active, click to omit'})`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition min-h-[36px] focus-visible:ring-2 focus-visible:ring-purple-400 ${
                     w.deleted
                       ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40'
                       : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
@@ -92,7 +100,7 @@ export default function TranscriptEditorPage() {
             </div>
           </div>
 
-          <button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition">
+          <button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition focus-visible:ring-2 focus-visible:ring-purple-400 min-h-[48px]">
             ⚡ Re-Render Short with New Timestamps
           </button>
         </div>

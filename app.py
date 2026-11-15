@@ -67,8 +67,9 @@ st.markdown("""
         display: inline-block;
         padding: 4px 14px;
         border-radius: 20px;
-        background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-        color: white;
+        background: #991b1b;
+        border: 1px solid #f87171;
+        color: #ffffff;
         font-weight: 700;
         font-size: 0.85rem;
     }
@@ -108,12 +109,24 @@ st.markdown("""
         text-decoration: line-through;
         font-size: 0.88rem;
     }
+    @media (prefers-reduced-motion: reduce) {
+        *, ::before, ::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+    :focus-visible {
+        outline: 2px solid #8b5cf6 !important;
+        outline-offset: 2px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Header
-st.markdown('<div class="main-title">🎬 AI Clipper Pro Studio</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Enterprise Short-Form Repurposing Engine · Face Tracking · Dynamic Karaoke · Multimodal Curation</div>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-title">🎬 AI Clipper Pro Studio</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sub-title">Enterprise Short-Form Repurposing Engine · Face Tracking · Dynamic Karaoke · Multimodal Curation</p>', unsafe_allow_html=True)
 
 DEFAULT_GROQ_KEY = os.getenv("GROQ_API_KEY", "")
 
@@ -495,7 +508,7 @@ with tab_brand:
         st.markdown("#### 📱 Safe-Area Mobile Layout Preview")
         font_clean = font_family.split("-")[0]
         st.markdown(f"""
-        <div style="width: 240px; height: 426px; background-color: #020617; border: 2px dashed {primary_color}; border-radius: 16px; margin: 0 auto; position: relative; padding: 12px; text-align: center; font-family: '{font_clean}', sans-serif;">
+        <div role="region" aria-label="Mobile 9:16 safe-area layout preview" style="width: 240px; height: 426px; background-color: #020617; border: 2px dashed {primary_color}; border-radius: 16px; margin: 0 auto; position: relative; padding: 12px; text-align: center; font-family: '{font_clean}', sans-serif;">
             <div style="background-color: rgba(0,0,0,0.7); color: white; padding: 6px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 20px; border-left: 3px solid {primary_color};">
                 VIRAL HEADLINE BANNER
             </div>
