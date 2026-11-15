@@ -12,6 +12,7 @@ from .boundary import BoundarySnapper
 from .framing import SmartFramingAgent
 from .polish import KeywordEmojiTagger, PunchInPlanner, AudioPolisher
 from .growth import MultiLanguageEngine, ChannelWatcherAgent, OfficialPublisherAgent
+from .feedback import MoatFeedbackEngine, ClipFeatureVector
 
 __all__ = [
     "TranscriberAgent",
@@ -27,4 +28,6 @@ __all__ = [
     "MultiLanguageEngine",
     "ChannelWatcherAgent",
     "OfficialPublisherAgent",
+    "MoatFeedbackEngine",
+    "ClipFeatureVector",
 ]

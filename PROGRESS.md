@@ -50,8 +50,12 @@
   - [x] `ChannelWatcherAgent` for monitoring YouTube channels and auto-clipping new uploads
   - [x] `OfficialPublisherAgent` for automated scheduling via official YouTube Data API v3, TikTok, and Instagram Reels APIs
   - [x] Unit test suite covering all growth features passing
-- [ ] **Phase 8: Feedback Loop & Moat** (Pending)
-  - Real performance tracking & curator optimization ranker
+- [x] **Phase 8: Feedback Loop & Moat** (COMPLETED)
+  - [x] `MoatFeedbackEngine`: records clip features (scores, duration, hook type, style)
+  - [x] Real metrics syncing from official YouTube Analytics & Social APIs (views, retention %, likes, shares)
+  - [x] Correlation and mean-absolute-error evaluation between predicted and actual metrics
+  - [x] Automated calibration & few-shot prompt optimization for `ViralCuratorAgent` and `JudgeAgent`
+  - [x] Pytest suite covering all moat features passing
 - [ ] **Phase 9: Production Hardening** (Pending)
   - Sentry, NVENC parallel GPU paths, rate limiting, and test suite
 
