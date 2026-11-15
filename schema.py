@@ -56,6 +56,20 @@ class CandidateClip(BaseModel):
     reason: str
 
 
+class CropPlan(BaseModel):
+    """Smart framing crop layout produced by SmartFramingAgent."""
+    layout: str = Field(..., description="'single_face', 'split_screen', or 'blur_fallback'")
+    face_count: int = Field(default=0)
+    scene_cuts: List[float] = Field(default_factory=list)
+    crop_x: Optional[int] = None
+    crop_y: Optional[int] = None
+    crop_w: Optional[int] = None
+    crop_h: Optional[int] = None
+    split_top_x: Optional[int] = None
+    split_bottom_x: Optional[int] = None
+    filter_string: str = Field(..., description="FFmpeg video filter string for the layout")
+
+
 class AudioSignals(BaseModel):
     """Multimodal audio signals extracted via librosa / scipy."""
     energy_peaks: List[float] = Field(default_factory=list, description="Timestamps of highest vocal energy / volume bursts")

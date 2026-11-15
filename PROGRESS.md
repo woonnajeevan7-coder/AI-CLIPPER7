@@ -16,10 +16,12 @@
   - [x] 3 headline variants per clip (Curiosity, Value, Bold Claim) with optimal selection
   - [x] Multimodal audio signals (librosa energy, laughter, and speech-rate)
   - [x] Strict Pydantic output validation (`RubricScore`, `HeadlineVariants`, `CandidateClip`, `ClipMetadata`) with retry on invalid JSON
-- [ ] **Phase 3: Smart Framing** (Pending)
-  - MediaPipe face detection & active speaker tracking
-  - Split-screen for 2 speakers
-  - PySceneDetect cut transitions
+- [x] **Phase 3: Smart Framing** (COMPLETED)
+  - [x] MediaPipe & OpenCV face tracking with EMA-smoothed 9:16 crop window
+  - [x] PySceneDetect cut detection to reset EMA at camera switches
+  - [x] 2-speaker vertical split-screen composition (1080x960 each)
+  - [x] Seamless fallback to ambient Gaussian blur layout when no face is found
+  - [x] Unit tests and FFmpeg rendering pipeline verified
 - [ ] **Phase 4: Motion & Polish** (Pending)
   - Dynamic punch-in zooms
   - LLM keyword & emoji highlights

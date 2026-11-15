@@ -1,13 +1,15 @@
 """
 Video Editor Agent
-Composites 9:16 vertical shorts using FFmpeg with ambient Gaussian blur backgrounds,
-centered video, viral headline banners, burned-in karaoke ASS subtitles, and EBU R128 loudness normalization.
+Composites 9:16 vertical shorts using FFmpeg with smart face tracking, split-screen layouts,
+ambient blur fallbacks, viral headline banners, karaoke ASS subtitles, and EBU R128 loudness normalization.
 """
 
 import re
 import subprocess
 from pathlib import Path
 from typing import Optional
+
+from schema import CropPlan
 
 
 class VideoEditorAgent:
@@ -25,10 +27,12 @@ class VideoEditorAgent:
         headline: str,
         output_path: Path,
         ass_subtitle_path: Optional[Path] = None,
+        crop_plan: Optional[CropPlan] = None,
         use_nvenc: bool = True
     ) -> bool:
         """
         Renders a vertical 9:16 short (1080x1920) conforming to TikTok/Reels/Shorts specs:
+        - Layout: Smart single face crop, 2-speaker split-screen, or ambient blur fallback
         - Resolution: 1080x1920
         - H.264 video with yuv420p pixel format
         - AAC audio at 192k normalized to -14 LUFS (EBU R128)
@@ -51,17 +55,29 @@ class VideoEditorAgent:
             font_arg = f"fontfile='{escaped_font}':"
 
         # Build filtergraph
-        # 1. Background blur + Foreground centered overlay
-        filter_chain = [
-            "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:5[bg]",
-            "[0:v]scale=1080:-2[fg]",
-            "[bg][fg]overlay=(W-w)/2:(H-h)/2[merged]",
-            f"[merged]drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240[with_headline]"
-        ]
+        filter_chain = []
 
+        if crop_plan and crop_plan.filter_string:
+            # Split-screen or smart single-face crop produces [merged]
+            for part in crop_plan.filter_string.split(";"):
+                part = part.strip()
+                if part:
+                    filter_chain.append(part)
+        else:
+            # Ambient blur background + centered video
+            filter_chain.extend([
+                "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:5[bg]",
+                "[0:v]scale=1080:-2[fg]",
+                "[bg][fg]overlay=(W-w)/2:(H-h)/2[merged]"
+            ])
+
+        # Headline banner
+        filter_chain.append(
+            f"[merged]drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240[with_headline]"
+        )
         last_v_tag = "[with_headline]"
 
-        # 2. Burn in ASS subtitles if provided
+        # Burn in ASS subtitles if provided
         if ass_subtitle_path and Path(ass_subtitle_path).exists():
             escaped_ass = str(Path(ass_subtitle_path).resolve().as_posix()).replace(":", r"\:")
             escaped_fonts_dir = str(self.fonts_dir.resolve().as_posix()).replace(":", r"\:")
@@ -76,7 +92,6 @@ class VideoEditorAgent:
         filter_complex_str = ";".join(filter_chain)
 
         # Video encoder selection (NVENC hardware acceleration with libx264 fallback)
-        vcodec = "h264_nvenc" if use_nvenc else "libx264"
         vcodec_args = (
             ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23"]
             if use_nvenc
@@ -109,7 +124,6 @@ class VideoEditorAgent:
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
             return True
         except subprocess.CalledProcessError as e:
-            # Fallback to software libx264 if NVENC failed
             if use_nvenc:
                 print(f"[VideoEditorAgent] NVENC failed ({e.stderr[-200:] if e.stderr else ''}), falling back to libx264...")
                 return self.render_short(
@@ -119,6 +133,7 @@ class VideoEditorAgent:
                     headline=headline,
                     output_path=output_path,
                     ass_subtitle_path=ass_subtitle_path,
+                    crop_plan=crop_plan,
                     use_nvenc=False
                 )
             print(f"[VideoEditorAgent] FFmpeg error: {e.stderr}")

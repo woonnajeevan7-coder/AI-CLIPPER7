@@ -9,6 +9,7 @@ from .editor import VideoEditorAgent
 from .orchestrator import ClipperOrchestratorAgent
 from .judge import JudgeAgent
 from .boundary import BoundarySnapper
+from .framing import SmartFramingAgent
 
 __all__ = [
     "TranscriberAgent",
@@ -17,4 +18,5 @@ __all__ = [
     "ClipperOrchestratorAgent",
     "JudgeAgent",
     "BoundarySnapper",
+    "SmartFramingAgent",
 ]

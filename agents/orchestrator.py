@@ -1,6 +1,7 @@
 """
 Clipper Orchestrator Agent
-Orchestrates the multi-agent pipeline: Ingestion -> Transcription -> Multimodal Curation -> Two-Pass Judge -> Video Rendering
+Orchestrates the multi-agent pipeline:
+Ingestion -> Transcription -> Multimodal Curation -> Two-Pass Judge -> Smart Framing -> Video Rendering
 Propagates word-level timestamps and burns in animated karaoke ASS subtitles.
 """
 
@@ -12,7 +13,8 @@ from .transcriber import TranscriberAgent
 from .curator import ViralCuratorAgent
 from .editor import VideoEditorAgent
 from .judge import JudgeAgent
-from schema import WordTimestamp, AudioSignals
+from .framing import SmartFramingAgent
+from schema import WordTimestamp, AudioSignals, CropPlan
 from captions import generate_karaoke_ass
 from audio_signals import AudioSignalAnalyzer
 
@@ -38,6 +40,7 @@ class ClipperOrchestratorAgent:
         self.transcriber = TranscriberAgent(self.ffmpeg_bin, self.temp_dir)
         self.curator = ViralCuratorAgent(api_key=api_key, provider=provider)
         self.judge = JudgeAgent(api_key=api_key, provider=provider)
+        self.framing = SmartFramingAgent(ema_alpha=0.15)
         self.editor = VideoEditorAgent(self.ffmpeg_bin, self.fonts_dir)
 
     def run_pipeline(
@@ -88,7 +91,6 @@ class ClipperOrchestratorAgent:
                     all_words = self.transcriber.transcribe_with_groq_whisper(audio_dest, self.curator.api_key)
                     transcript_text = self.transcriber.words_to_transcript_text(all_words)
 
-                # Acoustic signal extraction
                 audio_signals = AudioSignalAnalyzer.analyze_audio(audio_path=audio_dest, words=all_words)
                 if audio_dest.exists():
                     try:
@@ -153,14 +155,7 @@ class ClipperOrchestratorAgent:
             "progress": 78
         }
 
-        # Step 3: Video Rendering
-        yield {
-            "step": 3,
-            "agent": "VideoEditorAgent",
-            "status": f"Rendering 9:16 vertical shorts ({caption_style} animated karaoke captions + -14 LUFS audio)...",
-            "progress": 82
-        }
-
+        # Step 3: Video Rendering with Smart Framing
         rendered = []
         for i, clip in enumerate(clips):
             out_filename = f"short_{int(time.time())}_{i+1}.mp4"
@@ -170,11 +165,31 @@ class ClipperOrchestratorAgent:
             end = float(clip.get("end_seconds", start + 30.0))
             headline = clip.get("headline", clip.get("title", f"Clip {i+1}"))
 
+            # Smart Framing analysis
+            yield {
+                "step": 3,
+                "agent": "SmartFramingAgent",
+                "status": f"Analyzing face detection, EMA crop & scene cuts for clip #{i+1}...",
+                "progress": 80 + int(15 * (i + 0.3) / len(clips))
+            }
+
+            crop_plan = self.framing.analyze_framing(
+                video_path=video_path,
+                start_seconds=start,
+                end_seconds=end
+            )
+
+            layout_label = (
+                "2-Speaker Split Screen" if crop_plan.layout == "split_screen"
+                else "Active Speaker Face Tracking" if crop_plan.layout == "single_face"
+                else "Ambient Blur Fallback"
+            )
+
             yield {
                 "step": 3,
                 "agent": "VideoEditorAgent",
-                "status": f"Rendering short #{i+1}: '{clip.get('title')}' with headline banner '{headline}'...",
-                "progress": 82 + int(15 * (i + 1) / len(clips))
+                "status": f"Rendering short #{i+1}: '{clip.get('title')}' [{layout_label} | {caption_style} captions]...",
+                "progress": 80 + int(15 * (i + 1) / len(clips))
             }
 
             # Generate ASS subtitles for this clip segment if word timestamps exist
@@ -197,6 +212,7 @@ class ClipperOrchestratorAgent:
                 headline=headline,
                 output_path=out_filepath,
                 ass_subtitle_path=ass_path,
+                crop_plan=crop_plan,
                 use_nvenc=use_nvenc
             )
 
@@ -210,6 +226,7 @@ class ClipperOrchestratorAgent:
             if success and out_filepath.exists():
                 rendered.append({
                     "data": clip,
+                    "layout": crop_plan.layout,
                     "path": out_filepath
                 })
 
