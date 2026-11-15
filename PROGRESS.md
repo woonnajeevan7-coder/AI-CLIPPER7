@@ -10,12 +10,12 @@
   - [x] FFmpeg burn-in with `subtitles` filter + EBU R128 `-14 LUFS` audio normalization (`loudnorm`)
   - [x] +faststart flag, H.264, yuv420p, AAC
   - [x] Comprehensive unit tests with pytest & ffprobe verification passed
-- [ ] **Phase 2: Smart Curation** (Pending)
-  - Two-pass selection (Candidate Generator + JudgeAgent re-ranking)
-  - Boundary snapping to sentence ends and silences
-  - 3 headline variants per clip
-  - Multimodal audio signals (librosa energy/laughter)
-  - Pydantic output validation
+- [x] **Phase 2: Smart Curation** (COMPLETED)
+  - [x] Two-pass selection (Candidate Generator produces 10-15 candidates + JudgeAgent re-ranking)
+  - [x] Boundary snapping to sentence ends and silences via `BoundarySnapper`
+  - [x] 3 headline variants per clip (Curiosity, Value, Bold Claim) with optimal selection
+  - [x] Multimodal audio signals (librosa energy, laughter, and speech-rate)
+  - [x] Strict Pydantic output validation (`RubricScore`, `HeadlineVariants`, `CandidateClip`, `ClipMetadata`) with retry on invalid JSON
 - [ ] **Phase 3: Smart Framing** (Pending)
   - MediaPipe face detection & active speaker tracking
   - Split-screen for 2 speakers
