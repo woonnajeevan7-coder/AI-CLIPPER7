@@ -277,7 +277,7 @@ with tab_studio:
                     progress = event.get("progress", 0)
                     
                     progress_bar.progress(progress)
-                    agent_log_area.markdown(f"<div class='agent-log'>🤖 <b>[{agent}]</b> {status_text}</div>", unsafe_allow_html=True)
+                    agent_log_area.markdown(f"<div role='log' aria-live='polite' aria-label='Autonomous pipeline telemetry' class='agent-log'>🤖 <b>[{agent}]</b> {status_text}</div>", unsafe_allow_html=True)
                     
                     if "result" in event:
                         st.session_state.rendered_clips = event["result"]
@@ -500,7 +500,11 @@ with tab_brand:
         watermark_text = st.text_input("Safe-Area Watermark Handle (e.g. @yourhandle)", value=st.session_state.brand_kit.get("watermark_text", "@brand"))
 
     with col_bk2:
-        logo_file = st.file_uploader("Upload Brand Logo (PNG with transparency)", type=["png", "svg"])
+        logo_file = st.file_uploader(
+            "Upload Brand Logo (PNG with transparency)",
+            type=["png", "svg"],
+            help="Supported formats: PNG or SVG with transparent background"
+        )
         if logo_file:
             st.session_state.brand_kit["logo_data"] = logo_file.getvalue()
             st.image(logo_file, caption="Active Logo Watermark", width=120)
