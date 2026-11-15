@@ -22,10 +22,12 @@
   - [x] 2-speaker vertical split-screen composition (1080x960 each)
   - [x] Seamless fallback to ambient Gaussian blur layout when no face is found
   - [x] Unit tests and FFmpeg rendering pipeline verified
-- [ ] **Phase 4: Motion & Polish** (Pending)
-  - Dynamic punch-in zooms
-  - LLM keyword & emoji highlights
-  - Silence trimming & background music ducking
+- [x] **Phase 4: Motion & Polish** (COMPLETED)
+  - [x] Punch-in zooms (1.14x) at sentence starts and emphasis moments
+  - [x] Keyword & emoji highlights in ASS karaoke subtitles (`VIRAL_EMOJI_LEXICON`)
+  - [x] Silence trimming filter (`silenceremove`)
+  - [x] Background music ducking filter graph (`volume` + `amix`)
+  - [x] Pytest suite covering all motion and polish features passing
 - [ ] **Phase 5: Platform Backend** (Pending)
   - FastAPI `/api/v1` + Celery/Redis
   - PostgreSQL + Cloudflare R2 storage

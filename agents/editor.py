@@ -1,7 +1,8 @@
 """
 Video Editor Agent
 Composites 9:16 vertical shorts using FFmpeg with smart face tracking, split-screen layouts,
-ambient blur fallbacks, viral headline banners, karaoke ASS subtitles, and EBU R128 loudness normalization.
+punch-in zooms, viral headline banners, karaoke ASS subtitles with keyword emojis,
+silence trimming, optional background music with ducking, and EBU R128 loudness normalization.
 """
 
 import re
@@ -13,7 +14,7 @@ from schema import CropPlan
 
 
 class VideoEditorAgent:
-    """Agent responsible for aspect-ratio transformation, typography, subtitle burn-in, and video rendering."""
+    """Agent responsible for aspect-ratio transformation, typography, subtitle burn-in, motion, and rendering."""
 
     def __init__(self, ffmpeg_bin: Path, fonts_dir: Path):
         self.ffmpeg_bin = ffmpeg_bin
@@ -28,16 +29,18 @@ class VideoEditorAgent:
         output_path: Path,
         ass_subtitle_path: Optional[Path] = None,
         crop_plan: Optional[CropPlan] = None,
+        punch_in_filter: Optional[str] = None,
+        silence_trim: bool = False,
+        background_music_path: Optional[Path] = None,
         use_nvenc: bool = True
     ) -> bool:
         """
         Renders a vertical 9:16 short (1080x1920) conforming to TikTok/Reels/Shorts specs:
         - Layout: Smart single face crop, 2-speaker split-screen, or ambient blur fallback
-        - Resolution: 1080x1920
-        - H.264 video with yuv420p pixel format
-        - AAC audio at 192k normalized to -14 LUFS (EBU R128)
-        - +faststart flag for instant streaming
-        - Burned-in word-by-word karaoke ASS subtitles with collision-free safe margins
+        - Motion: Dynamic punch-in zoom scaling at emphasis intervals
+        - Subtitles: Word-by-word karaoke ASS subtitles with highlighted keywords and emojis
+        - Audio: Silence trimming, background music ducking, and EBU R128 (-14 LUFS) loudnorm
+        - Hardware: NVENC RTX GPU acceleration with libx264 software fallback
         """
         duration = end_seconds - start_seconds
         if duration <= 0:
@@ -58,22 +61,27 @@ class VideoEditorAgent:
         filter_chain = []
 
         if crop_plan and crop_plan.filter_string:
-            # Split-screen or smart single-face crop produces [merged]
             for part in crop_plan.filter_string.split(";"):
                 part = part.strip()
                 if part:
                     filter_chain.append(part)
         else:
-            # Ambient blur background + centered video
             filter_chain.extend([
                 "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=25:5[bg]",
                 "[0:v]scale=1080:-2[fg]",
                 "[bg][fg]overlay=(W-w)/2:(H-h)/2[merged]"
             ])
 
+        last_v_tag = "[merged]"
+
+        # Punch-in zooms
+        if punch_in_filter:
+            filter_chain.append(f"{last_v_tag}{punch_in_filter}[punched]")
+            last_v_tag = "[punched]"
+
         # Headline banner
         filter_chain.append(
-            f"[merged]drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240[with_headline]"
+            f"{last_v_tag}drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240[with_headline]"
         )
         last_v_tag = "[with_headline]"
 
@@ -98,27 +106,49 @@ class VideoEditorAgent:
             else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22"]
         )
 
-        # Loudness normalization (-14 LUFS, LRA 11, TP -1.5)
-        audio_filter = "loudnorm=I=-14:LRA=11:TP=-1.5"
+        # Audio filter construction
+        audio_filters = []
+        if silence_trim:
+            audio_filters.append("silenceremove=stop_periods=-1:stop_duration=0.45:stop_threshold=-40dB")
+        audio_filters.append("loudnorm=I=-14:LRA=11:TP=-1.5")
+        audio_filter_str = ",".join(audio_filters)
 
         cmd = [
             str(self.ffmpeg_bin),
             "-ss", f"{start_seconds:.3f}",
             "-i", str(source_video_path),
             "-t", f"{duration:.3f}",
+        ]
+
+        # Background music input and mixing if provided
+        has_bgm = background_music_path and Path(background_music_path).exists()
+        if has_bgm:
+            cmd.extend(["-stream_loop", "-1", "-i", str(background_music_path)])
+            bgm_complex = f";[1:a]volume=0.10[bgm];[0:a][bgm]amix=inputs=2:duration=first:dropout_transition=2,{audio_filter_str}[aout]"
+            filter_complex_str += bgm_complex
+            audio_map = "[aout]"
+        else:
+            audio_map = "0:a?"
+
+        cmd.extend([
             "-filter_complex", filter_complex_str,
             "-map", last_v_tag,
-            "-map", "0:a?",
+            "-map", audio_map,
             *vcodec_args,
             "-pix_fmt", "yuv420p",
-            "-af", audio_filter,
+        ])
+
+        if not has_bgm:
+            cmd.extend(["-af", audio_filter_str])
+
+        cmd.extend([
             "-c:a", "aac",
             "-b:a", "192k",
             "-ar", "48000",
             "-movflags", "+faststart",
             "-y",
             str(output_path)
-        ]
+        ])
 
         try:
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
@@ -134,6 +164,9 @@ class VideoEditorAgent:
                     output_path=output_path,
                     ass_subtitle_path=ass_subtitle_path,
                     crop_plan=crop_plan,
+                    punch_in_filter=punch_in_filter,
+                    silence_trim=silence_trim,
+                    background_music_path=background_music_path,
                     use_nvenc=False
                 )
             print(f"[VideoEditorAgent] FFmpeg error: {e.stderr}")

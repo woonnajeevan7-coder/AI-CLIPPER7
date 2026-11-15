@@ -10,6 +10,7 @@ from .orchestrator import ClipperOrchestratorAgent
 from .judge import JudgeAgent
 from .boundary import BoundarySnapper
 from .framing import SmartFramingAgent
+from .polish import KeywordEmojiTagger, PunchInPlanner, AudioPolisher
 
 __all__ = [
     "TranscriberAgent",
@@ -19,4 +20,7 @@ __all__ = [
     "JudgeAgent",
     "BoundarySnapper",
     "SmartFramingAgent",
+    "KeywordEmojiTagger",
+    "PunchInPlanner",
+    "AudioPolisher",
 ]

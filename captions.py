@@ -137,7 +137,9 @@ def generate_karaoke_ass(
         WordTimestamp(
             word=w.word.strip().upper(),
             start=max(0.0, w.start - clip_start_offset),
-            end=max(0.0, w.end - clip_start_offset)
+            end=max(0.0, w.end - clip_start_offset),
+            is_keyword=w.is_keyword,
+            emoji=w.emoji
         )
         for w in words
         if (w.end - clip_start_offset) > 0
@@ -152,11 +154,13 @@ def generate_karaoke_ass(
 
             line_parts = []
             for idx, w in enumerate(chunk):
+                display_word = f"{w.emoji} {w.word}" if w.emoji else w.word
                 if idx == active_idx:
-                    # Highlight active word with highlight color
-                    line_parts.append(f"{{\\c{style['highlight_color']}&}}{w.word}{{\\c{style['primary_color']}&}}")
+                    # Highlight active word with highlight or keyword color
+                    active_col = "&H0022FF&" if w.is_keyword else style['highlight_color']
+                    line_parts.append(f"{{\\c{active_col}&}}{display_word}{{\\c{style['primary_color']}&}}")
                 else:
-                    line_parts.append(w.word)
+                    line_parts.append(display_word)
 
             display_text = " ".join(line_parts)
             dialogue_line = f"Dialogue: 0,{w_start},{w_end},Default,,0,0,0,,{display_text}"

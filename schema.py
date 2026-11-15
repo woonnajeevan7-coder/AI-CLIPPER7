@@ -12,6 +12,8 @@ class WordTimestamp(BaseModel):
     word: str
     start: float = Field(..., description="Start time in seconds")
     end: float = Field(..., description="End time in seconds")
+    is_keyword: bool = Field(default=False, description="Whether this word is an emphasized viral keyword")
+    emoji: Optional[str] = Field(default=None, description="Viral emoji associated with this word")
 
     @property
     def duration(self) -> float:

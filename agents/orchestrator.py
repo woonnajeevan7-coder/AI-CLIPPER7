@@ -1,8 +1,7 @@
 """
 Clipper Orchestrator Agent
 Orchestrates the multi-agent pipeline:
-Ingestion -> Transcription -> Multimodal Curation -> Two-Pass Judge -> Smart Framing -> Video Rendering
-Propagates word-level timestamps and burns in animated karaoke ASS subtitles.
+Ingestion -> Transcription -> Multimodal Curation -> Two-Pass Judge -> Smart Framing -> Motion Polish -> Video Rendering
 """
 
 import time
@@ -14,6 +13,7 @@ from .curator import ViralCuratorAgent
 from .editor import VideoEditorAgent
 from .judge import JudgeAgent
 from .framing import SmartFramingAgent
+from .polish import KeywordEmojiTagger, PunchInPlanner, AudioPolisher
 from schema import WordTimestamp, AudioSignals, CropPlan
 from captions import generate_karaoke_ass
 from audio_signals import AudioSignalAnalyzer
@@ -53,6 +53,9 @@ class ClipperOrchestratorAgent:
         min_duration: int = 25,
         max_duration: int = 55,
         caption_style: str = "hormozi",
+        enable_punch_in: bool = True,
+        silence_trim: bool = False,
+        background_music_path: Optional[Path] = None,
         use_nvenc: bool = True
     ) -> Generator[Dict[str, Any], None, List[Dict[str, Any]]]:
         """
@@ -155,7 +158,7 @@ class ClipperOrchestratorAgent:
             "progress": 78
         }
 
-        # Step 3: Video Rendering with Smart Framing
+        # Step 3: Video Rendering with Smart Framing & Motion Polish
         rendered = []
         for i, clip in enumerate(clips):
             out_filename = f"short_{int(time.time())}_{i+1}.mp4"
@@ -163,6 +166,7 @@ class ClipperOrchestratorAgent:
 
             start = float(clip.get("start_seconds", 0.0))
             end = float(clip.get("end_seconds", start + 30.0))
+            duration = end - start
             headline = clip.get("headline", clip.get("title", f"Clip {i+1}"))
 
             # Smart Framing analysis
@@ -185,18 +189,24 @@ class ClipperOrchestratorAgent:
                 else "Ambient Blur Fallback"
             )
 
-            yield {
-                "step": 3,
-                "agent": "VideoEditorAgent",
-                "status": f"Rendering short #{i+1}: '{clip.get('title')}' [{layout_label} | {caption_style} captions]...",
-                "progress": 80 + int(15 * (i + 1) / len(clips))
-            }
-
-            # Generate ASS subtitles for this clip segment if word timestamps exist
+            # Motion & Polish: Tag keywords and emojis, plan punch-in zooms
+            clip_words = []
             ass_path = None
+            punch_in_filter = None
+
             if all_words:
-                clip_words = self.transcriber.filter_words_for_range(all_words, start, end)
-                if clip_words:
+                raw_clip_words = self.transcriber.filter_words_for_range(all_words, start, end)
+                if raw_clip_words:
+                    # Tag words with viral emojis and emphasis flags
+                    clip_words = KeywordEmojiTagger.tag_words(raw_clip_words)
+
+                    # Dynamic Punch-in zoom planning
+                    if enable_punch_in:
+                        intervals = PunchInPlanner.build_punch_in_intervals(clip_words, clip_duration=duration)
+                        if intervals:
+                            punch_in_filter = PunchInPlanner.generate_zoom_filter(intervals, zoom_factor=1.14)
+
+                    # Subtitle generation with keyword emojis
                     ass_path = self.temp_dir / f"karaoke_{int(time.time())}_{i+1}.ass"
                     generate_karaoke_ass(
                         words=clip_words,
@@ -204,6 +214,13 @@ class ClipperOrchestratorAgent:
                         style_preset=caption_style,
                         clip_start_offset=start
                     )
+
+            yield {
+                "step": 3,
+                "agent": "VideoEditorAgent",
+                "status": f"Rendering short #{i+1}: '{clip.get('title')}' [{layout_label} | Punch-In: {'ON' if enable_punch_in else 'OFF'} | {caption_style} captions]...",
+                "progress": 80 + int(15 * (i + 1) / len(clips))
+            }
 
             success = self.editor.render_short(
                 source_video_path=video_path,
@@ -213,6 +230,9 @@ class ClipperOrchestratorAgent:
                 output_path=out_filepath,
                 ass_subtitle_path=ass_path,
                 crop_plan=crop_plan,
+                punch_in_filter=punch_in_filter,
+                silence_trim=silence_trim,
+                background_music_path=background_music_path,
                 use_nvenc=use_nvenc
             )
 
@@ -227,6 +247,7 @@ class ClipperOrchestratorAgent:
                 rendered.append({
                     "data": clip,
                     "layout": crop_plan.layout,
+                    "punch_in": enable_punch_in,
                     "path": out_filepath
                 })
 
