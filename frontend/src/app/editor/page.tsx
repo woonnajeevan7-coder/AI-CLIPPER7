@@ -90,10 +90,10 @@ export default function TranscriptEditorPage() {
                   onClick={() => toggleWord(w.id)}
                   aria-pressed={!w.deleted}
                   aria-label={`${w.text} (${w.deleted ? 'deleted, click to restore' : 'active, click to omit'})`}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition min-h-[36px] focus-visible:ring-2 focus-visible:ring-purple-400 ${
+                  className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition min-h-[36px] focus-visible:ring-2 focus-visible:ring-purple-400 ${
                     w.deleted
                       ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
+                      : 'bg-white hover:bg-slate-100 text-black border border-slate-200 shadow-sm'
                   }`}
                 >
                   {w.text}
