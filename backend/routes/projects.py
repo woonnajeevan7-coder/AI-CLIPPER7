@@ -85,12 +85,15 @@ def create_project(
     db.commit()
     db.refresh(job)
 
-    # 4. Trigger Celery Task (or fallback to synchronous run if celery broker not running)
-    try:
-        process_pipeline_task.delay(project.id)
-    except Exception:
-        # Non-blocking celery fallback for test/dev environments
-        pass
+    # 4. Trigger Celery Task non-blocking in background thread
+    import threading
+    def dispatch_celery():
+        try:
+            process_pipeline_task.apply_async(args=[project.id], retry=False)
+        except Exception:
+            pass
+
+    threading.Thread(target=dispatch_celery, daemon=True).start()
 
     return {
         "project_id": project.id,

@@ -28,6 +28,9 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    broker_connection_timeout=0.5,
+    broker_connection_retry=False,
+    broker_transport_options={"socket_timeout": 0.5, "socket_connect_timeout": 0.5},
 )
 
 

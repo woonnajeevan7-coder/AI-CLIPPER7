@@ -14,9 +14,11 @@ import {
   Volume2,
   Sliders,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
 import { useAppStore } from '@/store';
+import { getValidAuthToken } from '@/lib/auth';
 
 interface WordItem {
   id: number;
@@ -103,11 +105,12 @@ export default function TranscriptEditorPage() {
     try {
       // Dispatches real POST /api/v1/clips/{clip_id}/trim to backend
       updateClipTrim(clipId, startSeconds, endSeconds);
+      const authToken = await getValidAuthToken();
       const res = await fetch(`http://localhost:8000/api/v1/clips/${clipId}/trim`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer local_dev_token',
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({
           new_start_seconds: startSeconds,
@@ -133,16 +136,16 @@ export default function TranscriptEditorPage() {
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Top Bar */}
-      <div className="flex items-center justify-between pb-6 border-b border-border mb-8">
-        <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border mb-8">
+        <div className="flex items-center space-x-3 sm:space-x-4">
           <button
             onClick={() => router.back()}
-            className="p-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-muted hover:text-foreground transition"
+            className="p-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-muted hover:text-foreground transition flex-shrink-0"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+            <h1 className="text-lg sm:text-2xl font-bold text-foreground">
               Transcript Video Trimmer Studio
             </h1>
             <p className="text-xs font-mono text-muted">
@@ -151,19 +154,34 @@ export default function TranscriptEditorPage() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="w-full sm:w-auto flex items-center justify-end space-x-2 sm:space-x-3">
           <button
             onClick={resetAllWords}
-            className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition"
+            className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Words</span>
           </button>
 
           <button
+            onClick={() => {
+              const a = document.createElement('a');
+              a.href = clipInStore?.video_url || '/sample_short.mp4';
+              a.download = `${clipId}_trimmed.mp4`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            }}
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-bold text-foreground transition"
+          >
+            <Download className="w-3.5 h-3.5 text-accent" />
+            <span>Download</span>
+          </button>
+
+          <button
             onClick={handleSaveTrim}
             disabled={isSaving}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition disabled:opacity-50"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition disabled:opacity-50"
           >
             {isSaving ? (
               <span>Saving Trim...</span>
@@ -191,7 +209,7 @@ export default function TranscriptEditorPage() {
       {/* Two Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: 9:16 Preview Player (5 Cols) */}
-        <div className="lg:col-span-5 bg-surface border border-border rounded-3xl p-6 flex flex-col items-center shadow-card-glow">
+        <div className="lg:col-span-5 bg-surface border border-border rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-card-glow">
           <div className="w-full flex items-center justify-between text-xs font-mono text-muted mb-4">
             <span className="text-accent font-bold">9:16 VERTICAL CANVAS</span>
             <span>1080 x 1920</span>

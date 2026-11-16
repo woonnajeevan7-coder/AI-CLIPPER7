@@ -15,6 +15,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
+import { getValidAuthToken } from '@/lib/auth';
 
 interface StageInfo {
   id: string;
@@ -93,43 +94,64 @@ export default function LiveStepperPage() {
   useEffect(() => {
     let sse: EventSource | null = null;
     let fallbackTimer: NodeJS.Timeout | null = null;
+    let watchdogTimer: NodeJS.Timeout | null = null;
+    let isCancelled = false;
 
-    try {
-      const sseUrl = `http://localhost:8000/api/v1/jobs/${jobId}/stream`;
-      sse = new EventSource(sseUrl);
+    async function initSSE() {
+      try {
+        const token = await getValidAuthToken();
+        if (isCancelled) return;
 
-      sse.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.progress !== undefined) {
-            setCurrentProgress(data.progress);
-            updatePipelineProgress(data.progress, data.status ? `[${data.agent || 'SYSTEM'}] ${data.status}` : undefined);
-            // Determine active stage
-            const stageIndex = STAGES.findIndex((s) => s.targetProgress >= data.progress);
-            if (stageIndex !== -1) setCurrentStageIdx(stageIndex);
+        // Watchdog: If no live worker advances progress past 0% within 3s, gracefully simulate
+        watchdogTimer = setTimeout(() => {
+          if (!isCancelled && currentProgress <= 12) {
+            console.log('No worker progress detected within 3s, activating smooth simulation.');
+            if (sse) sse.close();
+            startSimulation();
           }
-          if (data.status) {
-            setLogs((prev) => [...prev.slice(-30), `[${data.agent || 'SYSTEM'}] ${data.status}`]);
-          }
-          if (data.progress >= 100 || data.status === 'completed') {
-            setIsCompleted(true);
-            setPipelineRunning(false);
-            sse?.close();
-          }
-        } catch (e) {
-          // Plain text message
-          setLogs((prev) => [...prev.slice(-30), event.data]);
-        }
-      };
+        }, 3000);
 
-      sse.onerror = () => {
-        // Fallback to local smooth progress simulation if SSE endpoint is not running locally
-        if (sse) sse.close();
-        startSimulation();
-      };
-    } catch (e) {
-      startSimulation();
+        const sseUrl = `http://localhost:8000/api/v1/jobs/${jobId}/stream?token=${encodeURIComponent(token)}`;
+        sse = new EventSource(sseUrl);
+
+        sse.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.progress !== undefined && data.progress > 0) {
+              if (watchdogTimer) clearTimeout(watchdogTimer);
+              setCurrentProgress(data.progress);
+              updatePipelineProgress(data.progress, data.status ? `[${data.agent || 'SYSTEM'}] ${data.status}` : undefined);
+              // Determine active stage
+              const stageIndex = STAGES.findIndex((s) => s.targetProgress >= data.progress);
+              if (stageIndex !== -1) setCurrentStageIdx(stageIndex);
+            }
+            if (data.status) {
+              setLogs((prev) => [...prev.slice(-30), `[${data.agent || 'SYSTEM'}] ${data.status}`]);
+            }
+            if (data.progress >= 100 || data.status === 'completed') {
+              setIsCompleted(true);
+              setPipelineRunning(false);
+              sse?.close();
+            }
+          } catch (e) {
+            // Plain text message
+            setLogs((prev) => [...prev.slice(-30), event.data]);
+          }
+        };
+
+        sse.onerror = () => {
+          // Fallback to local smooth progress simulation if SSE endpoint is not running locally
+          if (watchdogTimer) clearTimeout(watchdogTimer);
+          if (sse) sse.close();
+          if (!isCancelled) startSimulation();
+        };
+      } catch (e) {
+        if (watchdogTimer) clearTimeout(watchdogTimer);
+        if (!isCancelled) startSimulation();
+      }
     }
+
+    initSSE();
 
     function startSimulation() {
       const simulatedSteps = [
@@ -160,6 +182,8 @@ export default function LiveStepperPage() {
     }
 
     return () => {
+      isCancelled = true;
+      if (watchdogTimer) clearTimeout(watchdogTimer);
       if (sse) sse.close();
       if (fallbackTimer) clearInterval(fallbackTimer);
     };

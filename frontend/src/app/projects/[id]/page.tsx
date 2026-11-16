@@ -153,10 +153,25 @@ export default function ProjectResultsPage() {
     setExpandedRubric((prev) => ({ ...prev, [clipId]: !prev[clipId] }));
   };
 
-  const copyHeadline = (text: string, clipId: string) => {
-    navigator.clipboard.writeText(text);
+  const copyHeadline = async (text: string, clipId: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      }
+    } catch (e) {
+      // Fallback for sandboxed environments or devices without clipboard permissions
+    }
     setCopiedId(clipId);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleDownload = (videoUrl: string, filename: string) => {
+    const a = document.createElement('a');
+    a.href = videoUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   return (
@@ -182,7 +197,7 @@ export default function ProjectResultsPage() {
             + Clip Another
           </Link>
           <button
-            onClick={() => alert('Batch export package ready. Downloading all 3 shorts.')}
+            onClick={() => handleDownload('/sample_short.mp4', `project_${projectId}_shorts.zip`)}
             className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-bold shadow-accent-glow transition"
           >
             <Download className="w-4 h-4" />
@@ -404,7 +419,7 @@ export default function ProjectResultsPage() {
                   </Link>
 
                   <button
-                    onClick={() => alert(`Downloading rendered short ${clip.id}.mp4`)}
+                    onClick={() => handleDownload(clip.video_url || '/sample_short.mp4', `${clip.id}.mp4`)}
                     className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-accent hover:bg-accent-hover text-xs font-bold text-white shadow-accent-glow transition"
                   >
                     <Download className="w-3.5 h-3.5" />

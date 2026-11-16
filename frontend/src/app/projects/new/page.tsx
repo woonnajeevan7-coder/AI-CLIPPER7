@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
 import { useAppStore } from '@/store';
+import { getValidAuthToken } from '@/lib/auth';
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -78,13 +79,13 @@ export default function NewProjectPage() {
         caption_style: captionPreset,
       };
 
+      const authToken = await getValidAuthToken();
       // Call FastAPI backend
       const response = await fetch('http://localhost:8000/api/v1/projects/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Mock auth bearer token for local demo
-          'Authorization': 'Bearer local_dev_token',
+          'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify(projectPayload),
       });
