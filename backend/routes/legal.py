@@ -5,7 +5,7 @@ Terms of Service, Privacy Policy, Rights Confirmation, and DMCA Copyright Takedo
 
 from pydantic import BaseModel, EmailStr
 from fastapi import APIRouter, HTTPException, status
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/legal", tags=["Legal & Compliance"])
 
@@ -55,7 +55,7 @@ def submit_dmca_report(req: DMCAReportRequest):
         )
 
     # Log & acknowledge takedown request
-    ticket_id = f"DMCA-{int(datetime.utcnow().timestamp())}"
+    ticket_id = f"DMCA-{int(datetime.now(timezone.utc).timestamp())}"
     return {
         "status": "received",
         "ticket_id": ticket_id,

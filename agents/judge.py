@@ -131,6 +131,7 @@ Respond ONLY with a valid JSON array of objects with this schema:
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.2,
+                    max_tokens=800,
                     response_format={"type": "json_object"} if attempt == 0 else None
                 )
 

@@ -79,6 +79,7 @@ Timestamped Video Transcript:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.3,
+                        max_tokens=1000,
                         response_format={"type": "json_object"}
                     )
                     raw_text = completion.choices[0].message.content or ""
