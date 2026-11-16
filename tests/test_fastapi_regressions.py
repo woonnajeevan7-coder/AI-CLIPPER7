@@ -160,3 +160,41 @@ def test_jobs_auth_and_ownership():
         f"{settings.API_V1_PREFIX}/jobs/{job_id}/stream?token={token1}"
     ) as stream_resp_param:
         assert stream_resp_param.status_code == 200
+
+
+def test_reject_non_access_tokens_in_get_current_user():
+    user = create_test_user(f"token_type_user_{uuid.uuid4().hex[:8]}@example.com")
+    access_tok = create_access_token({"sub": user.id, "email": user.email})
+    refresh_tok = create_refresh_token({"sub": user.id, "email": user.email})
+
+    # Access token must succeed
+    resp_access = client.get(
+        f"{settings.API_V1_PREFIX}/auth/me",
+        headers={"Authorization": f"Bearer {access_tok}"}
+    )
+    assert resp_access.status_code == 200
+    assert resp_access.json()["id"] == user.id
+
+    # Refresh token must be rejected with 401
+    resp_refresh = client.get(
+        f"{settings.API_V1_PREFIX}/auth/me",
+        headers={"Authorization": f"Bearer {refresh_tok}"}
+    )
+    assert resp_refresh.status_code == 401
+    assert "access token" in resp_refresh.json()["detail"].lower()
+
+    # Token with missing or wrong type must be rejected with 401
+    import jwt
+    from datetime import datetime, timezone, timedelta
+    custom_tok = jwt.encode(
+        {"sub": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=1), "type": "id_token"},
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM
+    )
+    resp_custom = client.get(
+        f"{settings.API_V1_PREFIX}/auth/me",
+        headers={"Authorization": f"Bearer {custom_tok}"}
+    )
+    assert resp_custom.status_code == 401
+    assert "access token" in resp_custom.json()["detail"].lower()
+
