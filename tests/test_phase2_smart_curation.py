@@ -122,3 +122,36 @@ def test_two_pass_curation_end_to_end():
     assert "headline" in first_clip
     assert "rubric" in first_clip
     assert "headline_variants" in first_clip
+
+
+def test_judge_score_gating():
+    candidates = [
+        CandidateClip(
+            candidate_id=1,
+            title="High Virality Clip",
+            start_seconds=10.0,
+            end_seconds=42.0,
+            duration=32.0,
+            initial_score=90,
+            hook="This is the biggest breakthrough of the decade.",
+            reason="High hook energy"
+        ),
+        CandidateClip(
+            candidate_id=2,
+            title="Low Virality Clip",
+            start_seconds=50.0,
+            end_seconds=60.0,
+            duration=10.0,
+            initial_score=60,
+            hook="Short hook",
+            reason="Low engagement"
+        )
+    ]
+    judge = JudgeAgent(api_key=None, provider="offline", min_score_threshold=75)
+    evaluated = judge.evaluate_and_rank(candidates=candidates, transcript_context="", top_n=5)
+    assert len(evaluated) > 0
+    for clip in evaluated:
+        assert clip.viral_score >= 75
+
+    strictly_gated = judge.evaluate_and_rank(candidates=candidates, transcript_context="", top_n=5, min_score=95)
+    assert len(strictly_gated) == 0

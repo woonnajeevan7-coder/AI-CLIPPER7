@@ -117,5 +117,54 @@ def test_render_short_ffmpeg_pipeline(tmp_path: Path):
     assert "1080x1920" in probe_output
     # Check yuv420p
     assert "yuv420p" in probe_output
+    # Check 60 FPS output
+    assert "60 fps" in probe_output or "60 tbr" in probe_output
     # Check AAC audio stream
     assert "Audio: aac" in probe_output
+
+
+def test_video_editor_nvenc_check_and_probe():
+    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    fonts_dir = Path("fonts").resolve()
+    editor = VideoEditorAgent(ffmpeg_bin=ffmpeg_bin, fonts_dir=fonts_dir)
+    nvenc_ok = editor.check_nvenc_available()
+    assert isinstance(nvenc_ok, bool)
+    assert nvenc_ok is True
+
+
+def test_transcriber_chunking_offset_accumulation(monkeypatch, tmp_path: Path):
+    from agents.transcriber import TranscriberAgent
+    agent = TranscriberAgent(ffmpeg_bin=Path("ffmpeg.exe"), temp_dir=tmp_path)
+
+    big_audio = tmp_path / "big_audio.mp3"
+    with open(big_audio, "wb") as f:
+        f.seek(26 * 1024 * 1024)
+        f.write(b"\0")
+
+    assert big_audio.stat().st_size > 25 * 1024 * 1024
+
+    chunk0 = tmp_path / "big_audio_chunk_000.mp3"
+    chunk1 = tmp_path / "big_audio_chunk_001.mp3"
+    chunk0.write_bytes(b"dummy audio 0")
+    chunk1.write_bytes(b"dummy audio 1")
+
+    def mock_subprocess_run(cmd, *args, **kwargs):
+        return subprocess.CompletedProcess(args=cmd, returncode=0)
+
+    def mock_transcribe_single(audio_file, api_key, client):
+        return [
+            WordTimestamp(word="hello", start=1.0, end=2.0),
+            WordTimestamp(word="world", start=2.5, end=3.5)
+        ]
+
+    monkeypatch.setattr(subprocess, "run", mock_subprocess_run)
+    monkeypatch.setattr(agent, "_transcribe_single_audio_file", mock_transcribe_single)
+
+    words = agent.transcribe_with_groq_whisper(big_audio, api_key="dummy_key")
+    assert len(words) == 4
+    # Chunk 0: t_offset = 0.0s
+    assert words[0].word == "hello" and words[0].start == 1.0 and words[0].end == 2.0
+    assert words[1].word == "world" and words[1].start == 2.5 and words[1].end == 3.5
+    # Chunk 1: t_offset = 600.0s
+    assert words[2].word == "hello" and words[2].start == 601.0 and words[2].end == 602.0
+    assert words[3].word == "world" and words[3].start == 602.5 and words[3].end == 603.5
