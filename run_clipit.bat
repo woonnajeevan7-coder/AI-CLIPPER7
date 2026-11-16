@@ -18,8 +18,8 @@ if %ERRORLEVEL% neq 0 (
 if not exist "ffmpeg.exe" (
     where ffmpeg >nul 2>nul
     if %ERRORLEVEL% neq 0 (
-        echo [INFO] FFmpeg binary not found. Running auto-setup...
-        call setup_ffmpeg.bat
+        echo [WARNING] FFmpeg binary not found in PATH or project root.
+        echo Please ensure ffmpeg is installed or available in PATH.
     )
 )
 

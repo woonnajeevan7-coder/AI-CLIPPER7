@@ -260,3 +260,29 @@ In accordance with the `/debugger` skill protocol, an exhaustive static, dynamic
 - **Automated Pytest Suite**: `pytest tests/ -v`: **39 passed in 59.63s (100% green)**.
 - **Live Streamlit Studio**: Active on port 8501 with guaranteed high-contrast pure white card and black text.
 
+---
+
+## 8. Codebase Decoupling & Docker Hygiene (Code-Reviewer Protocol)
+
+### Actions Completed:
+1. **ClipIt Decoupling to External Directory (`c:\Users\woonn\clipit_extracted\`)**:
+   - Extracted legacy desktop files completely outside the repository:
+     - `main.py`
+     - `index.html`
+     - `bundle.min.js`, `bundle.min.css`, `clipit_theme.css`
+     - `vendor/` (`interact.min.js`, `lucide.min.js`)
+     - `setup_ffmpeg.bat`
+     - `backend/time_bomb.py`, `backend/updater.py`
+     - All 70 compiled `.pyc` bytecode files across `backend/` and `__pycache__` directories.
+2. **Removed Stale Imports & Invocations**:
+   - Verified zero remaining imports of `time_bomb`, `updater`, or `main` across all remaining 49 Python and Next.js source files.
+   - Refactored `run_clipit.bat` to eliminate invocation of `setup_ffmpeg.bat`.
+   - Updated `.gitignore` to remove the legacy `!backend/*.pyc` tracking exception.
+3. **Container Security & Hygiene**:
+   - Added [.dockerignore](file:///c:/Users/woonn/ai%20clipping/.dockerignore) excluding `.env`, `*.db`, `ffmpeg.exe`, `ffprobe.exe`, `temp_media/`, `output_clips/`, `node_modules/`, and build/test caches.
+4. **Health & Verification Check**:
+   - Automated Pytest Suite: **39/39 passing** in 15.25s.
+   - Live Streamlit Web Studio: Verified active and responding with `HTTP 200 ok` on port 8501.
+   - FastAPI Backend: Imports and initializes with `0 errors`.
+
+

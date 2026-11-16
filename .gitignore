@@ -7,8 +7,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Keep compiled core modules required for standalone execution
-!backend/*.pyc
 
 # Local runtime data
 WebData/

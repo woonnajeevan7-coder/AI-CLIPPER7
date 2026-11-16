@@ -108,6 +108,7 @@ c:\Users\woonn\ai clipping\
 ├── .env                          # Local secrets (Active Groq API Key & configurations)
 ├── .env.example                  # Environment variable template
 ├── .gitignore                    # Git tracking ignore rules
+├── .dockerignore                 # Docker build exclusions (.env, *.db, ffmpeg.exe, temp_media, etc.)
 ├── ai_clipper.py                 # High-level Python programmatic CLI & API entry point
 ├── app.py                        # Streamlit Enterprise Studio with 3D WebGL & live telemetry
 ├── audio_signals.py              # Librosa acoustic signal analysis (laughter, energy peaks, speech rate)

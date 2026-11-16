@@ -1,0 +1,27 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Binaries & Media Directories
+ffmpeg.exe
+ffprobe.exe
+temp_media/
+output_clips/
+
+# Dependencies & Build Artefacts
+node_modules/
+.next/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.git/
+.github/
