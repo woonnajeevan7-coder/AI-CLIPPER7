@@ -162,3 +162,48 @@ def test_only_groq_ai_provider_enforced():
     assert ViralCuratorAgent(api_key=None, provider="heuristic").provider == "heuristic"
     assert JudgeAgent(api_key="test", provider="groq").provider == "groq"
     assert JudgeAgent(api_key=None, provider="heuristic").provider == "heuristic"
+
+
+def test_requested_five_clips_generates_exactly_five_clips():
+    """Verify bugfix: requesting 5 clips returns exactly 5 clips, not 2."""
+    curator = ViralCuratorAgent(api_key=None, provider="offline")
+    short_transcript = (
+        "[00:05] Cricket T10 fast bowling yorker highlight\n"
+        "[00:30] Batsman hits massive six into the stands\n"
+        "[00:55] Amazing catch on the boundary line"
+    )
+    clips = curator.curate_clips(transcript_text=short_transcript, num_clips=5)
+    assert len(clips) == 5, f"Expected exactly 5 clips when requesting 5, got {len(clips)}"
+
+
+def test_judge_backfills_when_gated_has_fewer_than_requested():
+    """Verify that when only 2 clips exceed the threshold, JudgeAgent backfills to fulfill top_n=5."""
+    judge = JudgeAgent(api_key=None, provider="offline", min_score_threshold=85)
+    candidates = [
+        CandidateClip(
+            candidate_id=i + 1,
+            title=f"Candidate {i + 1}",
+            start_seconds=float(i * 30),
+            end_seconds=float(i * 30 + 30),
+            duration=30.0,
+            initial_score=70 + i,
+            hook=f"Hook for candidate {i + 1}",
+            reason="Test candidate"
+        )
+        for i in range(8)
+    ]
+    ranked = judge.evaluate_and_rank(candidates=candidates, transcript_context="", top_n=5)
+    assert len(ranked) == 5, f"Expected 5 ranked clips after backfill, got {len(ranked)}"
+
+
+def test_heuristic_candidates_always_returns_target_candidates():
+    """Verify that _heuristic_candidates generates target_candidates even on sparse transcripts."""
+    curator = ViralCuratorAgent(api_key=None, provider="offline")
+    sparse_transcript = "[00:10] Only single line transcript."
+    candidates = curator._heuristic_candidates(
+        transcript_text=sparse_transcript,
+        target_candidates=10,
+        min_duration=20,
+        max_duration=50
+    )
+    assert len(candidates) >= 10, f"Expected >= 10 candidates, got {len(candidates)}"

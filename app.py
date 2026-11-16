@@ -13,9 +13,11 @@ from pathlib import Path
 import time
 import html
 from typing import List, Dict, Any
+from dotenv import load_dotenv
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
+load_dotenv(PROJECT_ROOT / ".env")
 
 from agents import ClipperOrchestratorAgent, VideoEditorAgent
 from schema import WordTimestamp
@@ -59,24 +61,114 @@ if "source_video_path" not in st.session_state:
 # Custom Styling (Dark-mode first, glassmorphism, responsive cards, high-contrast)
 st.markdown("""
 <style>
-    /* Global Typography & High-Contrast Enforcement */
-    p, span, label, div.stMarkdown, .stSelectbox label, .stSlider label, .stTextInput label, .stCheckbox label {
-        color: #f1f5f9 !important;
-        font-weight: 500 !important;
+    /* Bulletproof Base Dark Theming */
+    .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stSidebar"],
+    .main .block-container {
+        background-color: #0b0f19 !important;
+        color: #f8fafc !important;
     }
-    h1, h2, h3, h4, h5, h6 {
+    [data-testid="stSidebar"] {
+        background-color: #111827 !important;
+        border-right: 1px solid #1f2937 !important;
+    }
+    [data-testid="stSidebar"] * {
+        color: #f8fafc !important;
+    }
+    [data-testid="stHeader"] {
+        background-color: rgba(11, 15, 25, 0.95) !important;
+    }
+    
+    /* Global Typography & High-Contrast Enforcement */
+    p, span, label, div.stMarkdown, .stSelectbox label, .stSlider label, .stTextInput label, .stCheckbox label, div[data-testid="stMarkdownContainer"] p, .stRadio label, div[data-testid="stWidgetLabel"] label {
+        color: #f8fafc !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+    }
+    h1, h2, h3, h4, h5, h6, [data-testid="stHeadingWithActionElements"] {
         color: #ffffff !important;
         font-weight: 700 !important;
     }
-    .stTextInput input, .stTextArea textarea {
-        background-color: #0f172a !important;
+    
+    /* Text Inputs and Text Areas */
+    .stTextInput input, .stTextArea textarea, div[data-baseweb="input"] input {
+        background-color: #1e293b !important;
         color: #ffffff !important;
-        border: 1px solid #334155 !important;
+        border: 1px solid #475569 !important;
         font-size: 0.95rem !important;
+        border-radius: 8px !important;
     }
-    .stTextInput input:focus, .stTextArea textarea:focus {
-        border-color: #a855f7 !important;
-        box-shadow: 0 0 12px rgba(168, 85, 247, 0.4) !important;
+    .stTextInput input:focus, .stTextArea textarea:focus, div[data-baseweb="input"]:focus-within {
+        border-color: #ec4899 !important;
+        box-shadow: 0 0 10px rgba(236, 72, 153, 0.4) !important;
+    }
+    .stTextInput input::placeholder, .stTextArea textarea::placeholder {
+        color: #94a3b8 !important;
+    }
+
+    /* Tabs Styling */
+    div[data-baseweb="tab-list"] {
+        border-bottom: 2px solid #334155 !important;
+        background-color: transparent !important;
+    }
+    button[data-baseweb="tab"] {
+        color: #cbd5e1 !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        padding: 10px 18px !important;
+        background-color: transparent !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #ec4899 !important;
+        border-bottom: 3px solid #ec4899 !important;
+    }
+    button[data-baseweb="tab"] div, button[data-baseweb="tab"] p {
+        color: inherit !important;
+    }
+
+    /* Selectbox Styling */
+    div[data-baseweb="select"] > div {
+        background-color: #1e293b !important;
+        color: #ffffff !important;
+        border: 1px solid #475569 !important;
+        border-radius: 8px !important;
+    }
+    div[data-baseweb="select"] * {
+        color: #ffffff !important;
+    }
+    ul[data-baseweb="menu"] {
+        background-color: #1e293b !important;
+        border: 1px solid #475569 !important;
+    }
+    li[data-baseweb="menu-item"] {
+        color: #f8fafc !important;
+    }
+
+    /* Sliders */
+    div[data-testid="stSlider"] div[data-testid="stThumbValue"] {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="stSliderTickBar"] span {
+        color: #94a3b8 !important;
+    }
+
+    /* Expanders & Accordions */
+    details[data-testid="stExpander"] {
+        background-color: #111827 !important;
+        border: 1px solid #374151 !important;
+        border-radius: 10px !important;
+    }
+    details[data-testid="stExpander"] summary {
+        color: #f8fafc !important;
+        font-weight: 600 !important;
+    }
+
+    /* Radio Buttons & Checkboxes */
+    div[data-testid="stRadio"] label span, div[data-testid="stCheckbox"] label span {
+        color: #f8fafc !important;
+        font-weight: 600 !important;
     }
     .main-title {
         font-size: 2.6rem;
@@ -579,14 +671,17 @@ with st.sidebar:
     api_key = ""
     if "Groq" in provider:
         env_groq = os.getenv("GROQ_API_KEY", "")
+        if "groq_api_key" not in st.session_state:
+            st.session_state["groq_api_key"] = env_groq
         key_input = st.text_input(
             "Groq API Key",
             type="password",
-            value="",
-            placeholder="Leave blank to use GROQ_API_KEY from environment" if env_groq else "Enter gsk_... key",
-            help="For security, credentials are not pre-filled into the browser input. Server environment key is used if left blank."
+            value=st.session_state["groq_api_key"],
+            placeholder="Enter gsk_... key",
+            help="Always pre-loaded with GROQ_API_KEY from environment or session."
         )
         api_key = key_input.strip() or env_groq
+        st.session_state["groq_api_key"] = api_key
         engine_code = "groq"
     else:
         st.info("Running with internal heuristic analysis. No cloud key needed.")
@@ -597,6 +692,25 @@ with st.sidebar:
     num_clips = st.slider("Target Number of Clips", min_value=1, max_value=5, value=3)
     duration_range = st.slider("Clip Duration (seconds)", min_value=15, max_value=90, value=(25, 55))
     min_dur, max_dur = duration_range
+
+    st.subheader("📐 9:16 Video Framing Format")
+    framing_choice = st.selectbox(
+        "Framing Layout Preset",
+        options=[
+            "🏏 Cricket & Gaming Action Crop (9:16 + Top Banner)",
+            "🤖 Auto-Detect (Sports / Face Track / Split)",
+            "👤 Single Speaker Face Track",
+            "👥 2-Speaker Split Screen"
+        ],
+        index=0
+    )
+    framing_map = {
+        "🏏 Cricket & Gaming Action Crop (9:16 + Top Banner)": "sports_gaming",
+        "🤖 Auto-Detect (Sports / Face Track / Split)": "auto",
+        "👤 Single Speaker Face Track": "single_face",
+        "👥 2-Speaker Split Screen": "split_screen"
+    }
+    selected_framing_mode = framing_map[framing_choice]
 
     st.subheader("🎨 Subtitle & Audio Styling")
     caption_style_choice = st.selectbox(
@@ -719,6 +833,7 @@ with tab_studio:
                     min_duration=min_dur,
                     max_duration=max_dur,
                     caption_style=selected_caption_style,
+                    framing_mode=selected_framing_mode,
                     enable_punch_in=enable_punch_in,
                     use_nvenc=enable_nvenc
                 )

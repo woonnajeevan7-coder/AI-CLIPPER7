@@ -198,6 +198,14 @@ Timestamped Video Transcript (Segment {chunk_idx + 1}/{len(chunks)}):
                 # Check for overlap with already chosen candidates
                 if not any(abs(c.start_seconds - chosen.start_seconds) < 6.0 for chosen in deduped):
                     deduped.append(c)
+            # If deduplication dropped candidates below target_candidates, backfill with non-overlapping heuristic candidates
+            if len(deduped) < target_candidates:
+                h_cands = self._heuristic_candidates(transcript_text, target_candidates, min_duration, max_duration)
+                for hc in h_cands:
+                    if not any(abs(hc.start_seconds - chosen.start_seconds) < 6.0 for chosen in deduped):
+                        deduped.append(hc)
+                        if len(deduped) >= target_candidates:
+                            break
             # Re-index candidate IDs
             for i, c in enumerate(deduped):
                 c.candidate_id = i + 1
@@ -308,6 +316,25 @@ Timestamped Video Transcript (Segment {chunk_idx + 1}/{len(chunks)}):
                 initial_score=88 + (cid % 10),
                 hook=hook_text[:60] if hook_text else "Check this out",
                 reason="[HEURISTIC MODE] Candidate generated via transcript timestamp cadence."
+            ))
+            cid += 1
+
+        # Guarantee candidate count reaches target_candidates by generating staggered sliding windows
+        max_time = time_entries[-1][0] if time_entries else 180.0
+        dur_range = max(1, max_duration - min_duration)
+        while len(candidates) < target_candidates:
+            offset = (cid - 1) * max(10.0, min_duration * 0.5)
+            start_s = float(offset % max(45.0, max_time))
+            end_s = start_s + min_duration + ((cid * 3) % dur_range)
+            candidates.append(CandidateClip(
+                candidate_id=cid,
+                title=f"[Heuristic] Highlight {cid}",
+                start_seconds=float(start_s),
+                end_seconds=float(end_s),
+                duration=float(end_s - start_s),
+                initial_score=88 + (cid % 10),
+                hook=f"Candidate highlight moment #{cid}",
+                reason="[HEURISTIC MODE] Staggered window cadence."
             ))
             cid += 1
 

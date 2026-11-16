@@ -101,9 +101,10 @@ class JudgeAgent:
                     # Apply explicit score gating
                     gated = [c for c in evaluated if (c.rubric.total_score if c.rubric else c.viral_score) >= threshold]
                     gated.sort(key=lambda c: c.viral_score, reverse=True)
-                    if not gated and evaluated:
-                        # If strict threshold filtered all, take highest evaluated candidate
-                        gated = sorted(evaluated, key=lambda c: c.viral_score, reverse=True)
+                    if min_score is None and len(gated) < top_n and evaluated:
+                        # If strict threshold filtered candidates, backfill with remaining evaluated candidates in descending score order
+                        remaining = [c for c in sorted(evaluated, key=lambda c: c.viral_score, reverse=True) if c not in gated]
+                        gated.extend(remaining[:(top_n - len(gated))])
                     return gated[:top_n]
                 else:
                     raise RuntimeError("Groq LLM evaluation returned zero valid candidates.")
@@ -304,6 +305,12 @@ Respond ONLY with a valid JSON object containing a "clips" list:
                 break
 
         if all_results:
+            # If any candidates failed LLM evaluation, backfill them with heuristic evaluation
+            evaluated_starts = {round(r.start_seconds, 1) for r in all_results}
+            missing = [c for c in candidates if round(c.start_seconds, 1) not in evaluated_starts]
+            if missing:
+                heuristic_fallback = self._heuristic_evaluate(missing, audio_signals, top_n=len(missing), min_score=0)
+                all_results.extend(heuristic_fallback)
             return all_results
 
         raise RuntimeError(f"Groq LLM evaluation failed after 3 attempts. Last error: {last_error}")
@@ -365,6 +372,9 @@ Respond ONLY with a valid JSON object containing a "clips" list:
 
         results.sort(key=lambda x: x.viral_score, reverse=True)
         gated = [c for c in results if c.viral_score >= threshold]
+        if min_score is None and len(gated) < top_n and results:
+            remaining = [c for c in results if c not in gated]
+            gated.extend(remaining[:(top_n - len(gated))])
         return gated[:top_n]
 
     @staticmethod
