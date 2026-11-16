@@ -58,6 +58,7 @@ class ClipperOrchestratorAgent:
         min_duration: int = 25,
         max_duration: int = 55,
         caption_style: str = "hormozi",
+        framing_mode: Optional[str] = None,
         enable_punch_in: bool = True,
         silence_trim: bool = False,
         background_music_path: Optional[Path] = None,
@@ -174,6 +175,20 @@ class ClipperOrchestratorAgent:
             "progress": 78
         }
 
+        # Automatic genre detection for sports / cricket / gaming
+        check_str = f"{source} {transcript_text} {filename or ''}".lower()
+        sports_keywords = [
+            "cricket", "ipl", "t10", "t20", "match", "wicket", "bowler", "batsman",
+            "yorker", "over", "six", "innings", "gameplay", "gaming", "stream",
+            "clutch", "esports", "fortnite", "valorant", "gta", "fifa", "minecraft"
+        ]
+        is_sports_gaming = (
+            framing_mode in ("sports_gaming", "action_crop", "cricket", "gaming")
+            or any(kw in check_str for kw in sports_keywords)
+        )
+        effective_framing_mode = framing_mode or ("sports_gaming" if is_sports_gaming else "auto")
+        effective_caption_style = "sports_gaming" if (is_sports_gaming and caption_style == "hormozi") else caption_style
+
         # Step 3: Video Rendering with Smart Framing & Motion Polish
         rendered = []
         for i, clip in enumerate(clips):
@@ -189,18 +204,20 @@ class ClipperOrchestratorAgent:
             yield {
                 "step": 3,
                 "agent": "SmartFramingAgent",
-                "status": f"Analyzing face detection, EMA crop & scene cuts for clip #{i+1}...",
+                "status": f"Analyzing framing & action crop ({effective_framing_mode}) for clip #{i+1}...",
                 "progress": 80 + int(15 * (i + 0.3) / len(clips))
             }
 
             crop_plan = self.framing.analyze_framing(
                 video_path=video_path,
                 start_seconds=start,
-                end_seconds=end
+                end_seconds=end,
+                mode=effective_framing_mode
             )
 
             layout_label = (
-                "2-Speaker Split Screen" if crop_plan.layout == "split_screen"
+                "Cricket & Gaming Action Crop (9:16 Full Screen)" if crop_plan.layout in ("action_crop", "sports_gaming")
+                else "2-Speaker Split Screen" if crop_plan.layout == "split_screen"
                 else "Active Speaker Face Tracking" if crop_plan.layout == "single_face"
                 else "Ambient Blur Fallback"
             )
@@ -227,14 +244,14 @@ class ClipperOrchestratorAgent:
                     generate_karaoke_ass(
                         words=clip_words,
                         output_ass_path=ass_path,
-                        style_preset=caption_style,
+                        style_preset=effective_caption_style,
                         clip_start_offset=start
                     )
 
             yield {
                 "step": 3,
                 "agent": "VideoEditorAgent",
-                "status": f"Rendering short #{i+1}: '{clip.get('title')}' [{layout_label} | Punch-In: {'ON' if enable_punch_in else 'OFF'} | {caption_style} captions]...",
+                "status": f"Rendering short #{i+1}: '{clip.get('title')}' [{layout_label} | Punch-In: {'ON' if enable_punch_in else 'OFF'} | {effective_caption_style} captions]...",
                 "progress": 80 + int(15 * (i + 1) / len(clips))
             }
 

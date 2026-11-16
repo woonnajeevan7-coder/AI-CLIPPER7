@@ -25,6 +25,7 @@ class CreateProjectRequest(BaseModel):
     source_url: Optional[str] = None
     num_clips: int = 3
     caption_style: str = "hormozi"
+    framing_mode: Optional[str] = None
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

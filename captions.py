@@ -50,6 +50,20 @@ STYLE_PRESETS: Dict[str, Dict[str, Any]] = {
         "shadow": 1.5,
         "alignment": 2,
         "margin_v": 460,
+    },
+    "sports_gaming": {
+        "name": "SportsGaming",
+        "font": "Montserrat-Bold",
+        "fontsize": 66,
+        "primary_color": "&H00FFFFFF",      # Inactive: Crisp White
+        "highlight_color": "&H0000D7FF",    # Active: High-Energy Gold (BGR: 00D7FF)
+        "outline_color": "&H00000000",      # Thick Outline: Pure Black
+        "back_color": "&HA0000000",         # Deep Shadow: Translucent Black
+        "bold": 1,
+        "outline": 5.0,
+        "shadow": 2.5,
+        "alignment": 2,                     # Bottom Center
+        "margin_v": 380,                    # Elevated safe-area: Leaves bottom scoreboard & gaming HUD visible
     }
 }
 

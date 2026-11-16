@@ -26,10 +26,17 @@ class SmartFramingAgent:
         self,
         video_path: Path,
         start_seconds: float,
-        end_seconds: float
+        end_seconds: float,
+        mode: str = "auto"
     ) -> CropPlan:
         """
         Detects scene cuts, samples frames, tracks faces, and generates the optimal 9:16 crop plan.
+        Modes:
+        - 'sports_gaming' | 'action_crop' | 'cricket' | 'gaming':
+          Full 9:16 vertical action-centered crop (1080x1920), preserving pitch/field and bottom score/HUD.
+        - 'split_screen': 2-speaker vertical split-screen.
+        - 'single_face': Active speaker face tracking.
+        - 'auto': Dynamic face tracking if faces exist, defaulting to clean 9:16 action crop for widescreen content.
         """
         duration = max(1.0, end_seconds - start_seconds)
         
@@ -41,8 +48,22 @@ class SmartFramingAgent:
             video_path, start_seconds, duration, sample_fps=2.0
         )
 
-        if not face_records or width <= 0 or height <= 0:
+        if width <= 0 or height <= 0:
+            width, height = 1920, 1080
+
+        # Dedicated sports & gaming action-crop mode
+        if mode in ("sports_gaming", "action_crop", "cricket", "gaming"):
+            return self._build_action_crop_plan(width, height, scene_cuts)
+
+        if not face_records:
+            if width >= height:
+                return self._build_action_crop_plan(width, height, scene_cuts)
             return self._build_blur_fallback_plan(scene_cuts)
+
+        if mode == "split_screen":
+            return self._build_split_screen_plan(face_records, width, height, scene_cuts)
+        elif mode == "single_face":
+            return self._build_single_face_plan(face_records, width, height, scene_cuts)
 
         # Multi-speaker check: if 2 distinct faces appear in >= 35% of frames
         frames_with_two_faces = [r for r in face_records if len(r["faces"]) >= 2]
@@ -53,6 +74,10 @@ class SmartFramingAgent:
         frames_with_faces = [r for r in face_records if len(r["faces"]) >= 1]
         if len(frames_with_faces) / max(1, len(face_records)) >= 0.25:
             return self._build_single_face_plan(face_records, width, height, scene_cuts)
+
+        # For widescreen videos (e.g. cricket/gaming/sports), use full 9:16 action crop
+        if width >= height:
+            return self._build_action_crop_plan(width, height, scene_cuts)
 
         # Default fallback: Ambient blur layout
         return self._build_blur_fallback_plan(scene_cuts)
@@ -399,5 +424,39 @@ class SmartFramingAgent:
             layout="blur_fallback",
             face_count=0,
             scene_cuts=scene_cuts,
+            filter_string=filter_str
+        )
+
+    def _build_action_crop_plan(
+        self,
+        width: int,
+        height: int,
+        scene_cuts: List[float],
+        center_bias: float = 0.5
+    ) -> CropPlan:
+        """
+        Builds a 9:16 full-screen action crop (1080x1920) optimized for cricket, sports,
+        and gaming clips. Centers horizontally on the action plane / pitch while preserving
+        full vertical height and maintaining bottom scoreboards/HUDs without blurry letterbox bars.
+        """
+        target_aspect = 9.0 / 16.0
+        crop_h = height
+        crop_w = int(crop_h * target_aspect)
+        if crop_w > width:
+            crop_w = width
+            crop_h = int(crop_w / target_aspect)
+
+        crop_x = int(np.clip((width - crop_w) * center_bias, 0, max(0, width - crop_w)))
+        crop_y = int(max(0, (height - crop_h) / 2.0))
+
+        filter_str = f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y},scale=1080:1920[merged]"
+        return CropPlan(
+            layout="action_crop",
+            face_count=0,
+            scene_cuts=scene_cuts,
+            crop_x=crop_x,
+            crop_y=crop_y,
+            crop_w=crop_w,
+            crop_h=crop_h,
             filter_string=filter_str
         )

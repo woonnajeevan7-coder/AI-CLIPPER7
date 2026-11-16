@@ -60,7 +60,7 @@ class CandidateClip(BaseModel):
 
 class CropPlan(BaseModel):
     """Smart framing crop layout produced by SmartFramingAgent."""
-    layout: str = Field(..., description="'single_face', 'split_screen', or 'blur_fallback'")
+    layout: str = Field(..., description="'single_face', 'split_screen', 'blur_fallback', 'action_crop', or 'sports_gaming'")
     face_count: int = Field(default=0)
     scene_cuts: List[float] = Field(default_factory=list)
     crop_x: Optional[int] = None

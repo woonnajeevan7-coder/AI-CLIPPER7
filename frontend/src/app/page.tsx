@@ -18,6 +18,8 @@ import {
   ArrowRight,
   Play,
   Award,
+  Trophy,
+  Gamepad2,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
 import { useAppStore } from '@/store';
@@ -39,7 +41,8 @@ export default function StudioRootPage() {
   const [title, setTitle] = useState('');
   const [numClips, setNumClips] = useState(3);
   const [durationTarget, setDurationTarget] = useState<'20-45' | '45-60'>('20-45');
-  const [captionPreset, setCaptionPreset] = useState('hormozi');
+  const [framingMode, setFramingMode] = useState<'sports_gaming' | 'single_face' | 'split_screen' | 'auto'>('sports_gaming');
+  const [captionPreset, setCaptionPreset] = useState('sports_gaming');
   const [punchInZoom, setPunchInZoom] = useState(true);
   const [musicDucking, setMusicDucking] = useState(true);
   const [silenceTrim, setSilenceTrim] = useState(true);
@@ -48,8 +51,25 @@ export default function StudioRootPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Recent Projects List
+  // Auto-detect Cricket & Gaming content
+  const detectedSportsOrGaming = /cricket|ipl|t10|t20|match|wicket|bowler|batsman|yorker|over|six|gaming|gameplay|stream|clutch|esports|valorant|fortnite|gta|fifa|minecraft/i.test(
+    `${title} ${url} ${uploadedFile?.name || ''}`
+  );
+  const isCricketOrGaming = framingMode === 'sports_gaming' || detectedSportsOrGaming;
+
+  // Recent Projects List featuring the verified cricket video format (short_1794842257_2.mp4)
   const recentProjects = [
+    {
+      id: 'proj_cricket_t10',
+      title: 'Abu Dhabi T10: Will Smiths Yorker Disaster',
+      duration: '26.7s',
+      clipsCount: 2,
+      topScore: 98,
+      date: 'Just now',
+      status: 'Ready',
+      formatTag: '🏏 Cricket Action 9:16 + Top Banner',
+      headline: 'WILL SMITHS YORKER DISASTER',
+    },
     {
       id: 'proj_demo_1',
       title: 'Connecting the Dots in Life',
@@ -58,6 +78,8 @@ export default function StudioRootPage() {
       topScore: 96,
       date: 'Today',
       status: 'Ready',
+      formatTag: '🎙️ Face Tracking',
+      headline: 'CONNECTING THE DOTS',
     },
     {
       id: 'proj_demo_2',
@@ -67,15 +89,8 @@ export default function StudioRootPage() {
       topScore: 92,
       date: 'Yesterday',
       status: 'Ready',
-    },
-    {
-      id: 'proj_demo_3',
-      title: 'Why 99% Fail at Product-Market Fit',
-      duration: '28s',
-      clipsCount: 4,
-      topScore: 89,
-      date: '3 days ago',
-      status: 'Ready',
+      formatTag: '👥 2-Speaker Split',
+      headline: 'THE QUANTUM PARADOX',
     },
   ];
 
@@ -110,6 +125,7 @@ export default function StudioRootPage() {
         source_url: ingestMode === 'url' ? url.trim() : null,
         num_clips: numClips,
         caption_style: captionPreset,
+        framing_mode: isCricketOrGaming ? 'sports_gaming' : framingMode,
       };
 
       const authToken = await getValidAuthToken();
@@ -170,6 +186,35 @@ export default function StudioRootPage() {
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
+
+      {/* Cricket & Gaming Video Format Detected Alert */}
+      {isCricketOrGaming && (
+        <div className="mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between shadow-card-glow animate-fadeIn">
+          <div className="flex items-center space-x-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-amber-300 flex items-center space-x-2">
+                <span>Cricket &amp; Gaming Video Format Active</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-200">
+                  MATCHING short_1794842257_2
+                </span>
+              </p>
+              <p className="text-xs text-zinc-300 mt-0.5">
+                Full-screen 9:16 Action Crop (1080x1920) · Bold Top Headline Banner · Bottom Scoreboard &amp; HUD Safe Zone
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFramingMode('single_face')}
+            className="text-xs font-mono text-zinc-400 hover:text-white underline underline-offset-2 ml-4 flex-shrink-0"
+          >
+            Change
+          </button>
+        </div>
+      )}
 
       {errorMsg && (
         <div className="mb-6">
@@ -325,7 +370,62 @@ export default function StudioRootPage() {
 
             {showAdvanced && (
               <div id="studio-advanced-panel" className="p-5 border-t border-border space-y-6">
-                {/* 1. Target Duration */}
+                {/* 1. Video Genre & Framing Format */}
+                <div>
+                  <span className="block text-xs font-mono font-semibold uppercase text-zinc-300 tracking-wider mb-2">
+                    Video Genre &amp; 9:16 Framing Format
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Video genre and framing format">
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={framingMode === 'sports_gaming'}
+                      onClick={() => {
+                        setFramingMode('sports_gaming');
+                        setCaptionPreset('sports_gaming');
+                      }}
+                      className={`p-3.5 rounded-xl border text-left btn-spell flex items-start space-x-3 ${
+                        framingMode === 'sports_gaming'
+                          ? 'bg-amber-500/15 border-amber-500/50 shadow-sm ring-1 ring-amber-500/50'
+                          : 'bg-surfaceElevated border-border text-zinc-400 hover:text-foreground'
+                      }`}
+                    >
+                      <Trophy className={`w-5 h-5 mt-0.5 flex-shrink-0 ${framingMode === 'sports_gaming' ? 'text-amber-400' : 'text-zinc-400'}`} />
+                      <div>
+                        <p className={`text-xs font-bold ${framingMode === 'sports_gaming' ? 'text-amber-300' : 'text-foreground'}`}>
+                          🏏 Cricket &amp; Gaming Format
+                        </p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          Action 9:16 crop · Top headline banner · Scoreboard &amp; HUD safe zone (short_1794842257_2)
+                        </p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={framingMode === 'single_face'}
+                      onClick={() => setFramingMode('single_face')}
+                      className={`p-3.5 rounded-xl border text-left btn-spell flex items-start space-x-3 ${
+                        framingMode === 'single_face'
+                          ? 'bg-accent/20 border-accent shadow-sm ring-1 ring-accent'
+                          : 'bg-surfaceElevated border-border text-zinc-400 hover:text-foreground'
+                      }`}
+                    >
+                      <Video className={`w-5 h-5 mt-0.5 flex-shrink-0 ${framingMode === 'single_face' ? 'text-accent' : 'text-zinc-400'}`} />
+                      <div>
+                        <p className={`text-xs font-bold ${framingMode === 'single_face' ? 'text-accent-light' : 'text-foreground'}`}>
+                          🎙️ Podcasts &amp; Solo Speaker
+                        </p>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          Active speaker face tracking · Smooth EMA camera centering
+                        </p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Target Duration */}
                 <div>
                   <span className="block text-xs font-mono font-semibold uppercase text-zinc-300 tracking-wider mb-2">
                     Clip Duration Window
@@ -402,6 +502,7 @@ export default function StudioRootPage() {
                     className="grid grid-cols-2 sm:grid-cols-4 gap-3"
                   >
                     {[
+                      { id: 'sports_gaming', name: 'Sports Gold', desc: 'HUD-Safe / Gold Pop' },
                       { id: 'hormozi', name: 'Hormozi', desc: 'Yellow / Bold' },
                       { id: 'cyber_cyan', name: 'Cyber Cyan', desc: 'Neon Accent' },
                       { id: 'emerald_box', name: 'Emerald Box', desc: 'Green Box' },
@@ -537,6 +638,11 @@ export default function StudioRootPage() {
                 <h3 className="text-sm font-bold text-foreground mb-1 group-hover:text-accent-light transition-colors line-clamp-1">
                   {p.title}
                 </h3>
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surfaceElevated border border-border text-zinc-300">
+                    {p.formatTag}
+                  </span>
+                </div>
                 <p className="text-xs text-zinc-400 mb-4">
                   {p.clipsCount} viral shorts generated · {p.duration} duration
                 </p>

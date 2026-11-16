@@ -129,3 +129,42 @@ def test_smart_framing_ffmpeg_render_pipeline(tmp_path: Path):
     res = subprocess.run(cmd_probe, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     assert "1080x1920" in res.stderr
     assert "yuv420p" in res.stderr
+
+
+def test_action_crop_plan_sports_gaming_cricket():
+    agent = SmartFramingAgent()
+    # 1920x1080 landscape video (cricket broadcast or gaming capture)
+    plan = agent._build_action_crop_plan(width=1920, height=1080, scene_cuts=[1.2])
+    assert plan.layout == "action_crop"
+    assert plan.face_count == 0
+    assert plan.crop_h == 1080
+    assert plan.crop_w == int(1080 * 9 / 16)  # 607
+    assert plan.crop_x == int((1920 - 607) / 2)  # 656
+    assert plan.crop_y == 0
+    assert plan.filter_string == "[0:v]crop=607:1080:656:0,scale=1080:1920[merged]"
+
+
+def test_sports_gaming_mode_selection(tmp_path: Path):
+    ffmpeg_bin = get_ffmpeg_bin()
+    test_vid = tmp_path / "cricket_game_clip.mp4"
+    cmd_synth = [
+        str(ffmpeg_bin),
+        "-f", "lavfi", "-i", "testsrc=size=1920x1080:rate=25",
+        "-t", "1.0",
+        "-c:v", "libx264",
+        "-y",
+        str(test_vid)
+    ]
+    subprocess.run(cmd_synth, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+    agent = SmartFramingAgent()
+    # Explicit sports_gaming mode
+    plan = agent.analyze_framing(test_vid, start_seconds=0.0, end_seconds=1.0, mode="sports_gaming")
+    assert plan.layout == "action_crop"
+    assert "crop=607:1080:656:0,scale=1080:1920[merged]" in plan.filter_string
+
+    # Verify safe subtitle margin for sports scoreboards and gaming HUDs
+    from captions import STYLE_PRESETS
+    assert "sports_gaming" in STYLE_PRESETS
+    assert STYLE_PRESETS["sports_gaming"]["margin_v"] == 380
+
