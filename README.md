@@ -9,16 +9,16 @@
      VERTICAL MOTION STUDIO PRO          
 ```
 
-# 🎬 ClipIt — Vertical Motion Studio Pro
+# 🎬 AI-CLIPPER7 — Vertical Motion Studio Pro
 
 ### *Next-Generation Desktop Workstation for Repurposing Landscape Footage into Viral 9:16 Vertical Content.*
 
-[![Version](https://img.shields.io/badge/version-2.0.0--pro-8b5cf6.svg?style=for-the-badge)](https://github.com/AIwolfie/clipit)
+[![Version](https://img.shields.io/badge/version-2.0.0--pro-8b5cf6.svg?style=for-the-badge)](https://github.com/woonnajeevan7-coder/AI-CLIPPER7)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-38bdf8.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![GPU Accelerated](https://img.shields.io/badge/GPU%20Encode-NVENC%20%7C%20AMF%20%7C%20QSV-10b981.svg?style=for-the-badge&logo=nvidia&logoColor=white)](https://ffmpeg.org)
 [![Platform](https://img.shields.io/badge/Platform-Windows%2011%20%2F%2010-06b6d4.svg?style=for-the-badge&logo=windows&logoColor=white)](https://microsoft.com/windows)
-[![Creator](https://img.shields.io/badge/Re--Engineered%20By-AIwolfie%20(Mayank%20Malaviya)-f43f5e.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/AIwolfie)
-[![Website](https://img.shields.io/badge/Web-aiwolfie.online-6366f1.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](https://aiwolfie.online)
+[![Creator](https://img.shields.io/badge/Developed%20By-Woonna%20Jeevan-f43f5e.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/woonnajeevan7-coder)
+[![Repository](https://img.shields.io/badge/Repo-woonnajeevan7--coder%2FAI--CLIPPER7-6366f1.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com/woonnajeevan7-coder/AI-CLIPPER7)
 
 ---
 
@@ -249,18 +249,17 @@ This open-source project was developed through rigorous software reverse enginee
 
 ---
 
-## 👨‍💻 Reverse Engineered & Open Sourced By
+## 👨‍💻 Engineered & Open Sourced By
 
 <div align="center">
 
-Re-engineered by **[AIwolfie (Mayank Malaviya)](https://github.com/AIwolfie)**
+Developed & Engineered by **[Woonna Jeevan](https://github.com/woonnajeevan7-coder)**
 
-🌐 **Official Website:** [aiwolfie.online](https://aiwolfie.online)  
-🐙 **GitHub Profile:** [@AIwolfie](https://github.com/AIwolfie)  
-📦 **Repository:** [AIwolfie/ClipIT](https://github.com/AIwolfie/ClipIT)
+🐙 **GitHub Profile:** [@woonnajeevan7-coder](https://github.com/woonnajeevan7-coder)  
+📦 **Repository:** [woonnajeevan7-coder/AI-CLIPPER7](https://github.com/woonnajeevan7-coder/AI-CLIPPER7)
 
 ---
 
-*ClipIt Studio Pro is released under the **MIT License**. Free for individual, educational, and open-source video workflow exploration.*
+*AI-CLIPPER7 Studio Pro is released under the **MIT License**. Free for individual, educational, and open-source video workflow exploration.*
 
 </div>
