@@ -127,14 +127,14 @@ export default function BillingPage() {
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`bg-surface rounded-3xl p-7 flex flex-col justify-between border transition relative ${
+            className={`bg-surface rounded-3xl p-7 flex flex-col justify-between border card-spell relative ${
               plan.isPopular
                 ? 'border-accent shadow-accent-glow bg-gradient-to-b from-surfaceElevated to-surface'
                 : 'border-border shadow-card-glow'
             }`}
           >
             {plan.isPopular && (
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-accent text-white text-[11px] font-bold tracking-wide uppercase shadow-lg">
+              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 rounded-full bg-accent text-white text-[11px] font-bold tracking-wide uppercase shadow-accent-glow animate-float">
                 Most Popular
               </span>
             )}
@@ -157,7 +157,7 @@ export default function BillingPage() {
                 {plan.features.map((feat, i) => (
                   <li key={i} className="flex items-start space-x-2.5">
                     <CheckCircle2 className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                    <span className="text-foreground/90">{feat}</span>
+                    <span className="text-foreground/90 font-medium">{feat}</span>
                   </li>
                 ))}
               </ul>
@@ -176,7 +176,7 @@ export default function BillingPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => handleUpgradeClick(plan.name)}
-                    className="w-full py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition flex items-center justify-center space-x-1.5"
+                    className="w-full py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow btn-spell flex items-center justify-center space-x-1.5"
                   >
                     <span>{plan.buttonLabel}</span>
                     <span className="px-1.5 py-0.5 rounded bg-white/20 text-[10px] font-mono tracking-wider uppercase ml-1">

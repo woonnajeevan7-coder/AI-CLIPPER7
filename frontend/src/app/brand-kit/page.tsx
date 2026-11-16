@@ -132,14 +132,21 @@ export default function BrandKitPage() {
         <button
           onClick={handleSaveBrandKit}
           disabled={isSaving}
-          className="flex items-center space-x-2 px-6 py-3 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-bold shadow-accent-glow transition disabled:opacity-50"
+          className={`flex items-center space-x-2 px-6 py-3 rounded-xl text-sm font-bold shadow-accent-glow btn-spell disabled:opacity-50 transition-all duration-200 ${
+            saveSuccess
+              ? 'bg-emerald-600 text-white shadow-radar-glow'
+              : 'bg-accent hover:bg-accent-hover text-white'
+          }`}
         >
           {isSaving ? (
-            <span>Saving...</span>
+            <span className="flex items-center space-x-2">
+              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <span>Saving...</span>
+            </span>
           ) : saveSuccess ? (
             <>
-              <Check className="w-4 h-4 text-emerald-300" />
-              <span className="text-emerald-300">Saved to Cloud</span>
+              <Check className="w-4 h-4 text-white animate-bounce" />
+              <span className="text-white">Saved to Cloud</span>
             </>
           ) : (
             <>

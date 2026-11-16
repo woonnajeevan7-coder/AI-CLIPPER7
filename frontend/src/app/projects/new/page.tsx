@@ -134,14 +134,14 @@ export default function NewProjectPage() {
       {/* Main Card */}
       <div className="bg-surface border border-border rounded-3xl p-6 sm:p-8 shadow-card-glow">
         {/* Ingestion Mode Toggle */}
-        <div className="flex rounded-xl bg-surfaceElevated p-1.5 border border-border mb-8 max-w-md mx-auto">
+        <div className="flex rounded-xl bg-surfaceElevated p-1.5 border border-border mb-8 max-w-md mx-auto shadow-inner">
           <button
             type="button"
             onClick={() => setIngestMode('url')}
-            className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-lg text-sm font-semibold transition ${
+            className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-lg text-sm font-semibold btn-spell ${
               ingestMode === 'url'
                 ? 'bg-accent text-white shadow-accent-glow'
-                : 'text-muted hover:text-foreground'
+                : 'text-muted hover:text-foreground hover:bg-surface/50'
             }`}
           >
             <LinkIcon className="w-4 h-4" />
@@ -150,10 +150,10 @@ export default function NewProjectPage() {
           <button
             type="button"
             onClick={() => setIngestMode('upload')}
-            className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-lg text-sm font-semibold transition ${
+            className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-lg text-sm font-semibold btn-spell ${
               ingestMode === 'upload'
                 ? 'bg-accent text-white shadow-accent-glow'
-                : 'text-muted hover:text-foreground'
+                : 'text-muted hover:text-foreground hover:bg-surface/50'
             }`}
           >
             <UploadCloud className="w-4 h-4" />
@@ -245,14 +245,14 @@ export default function NewProjectPage() {
           )}
 
           {/* Collapsible Options Accordion */}
-          <div className="border border-border rounded-2xl overflow-hidden bg-surfaceElevated/30">
+          <div className="border border-border hover:border-accent/30 rounded-2xl overflow-hidden bg-surfaceElevated/30 transition-colors">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-surfaceElevated/60 transition"
+              className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-surfaceElevated/60 transition group btn-spell"
             >
               <div className="flex items-center space-x-2.5">
-                <Sliders className="w-4 h-4 text-accent" />
+                <Sliders className="w-4 h-4 text-accent transition-transform duration-300 group-hover:rotate-45" />
                 <span className="text-sm font-semibold text-foreground">
                   Curation & Output Preferences
                 </span>
@@ -260,15 +260,11 @@ export default function NewProjectPage() {
                   {numClips} clips · {durationTarget}s · {captionPreset}
                 </span>
               </div>
-              {showAdvanced ? (
-                <ChevronUp className="w-4 h-4 text-muted" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted" />
-              )}
+              <ChevronDown className={`w-4 h-4 text-muted transition-transform duration-300 ${showAdvanced ? 'rotate-180 text-accent' : ''}`} />
             </button>
 
             {showAdvanced && (
-              <div className="p-5 border-t border-border space-y-6">
+              <div className="p-5 border-t border-border space-y-6 animate-fadeIn">
                 {/* 1. Target Duration */}
                 <div>
                   <label className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
@@ -278,9 +274,9 @@ export default function NewProjectPage() {
                     <button
                       type="button"
                       onClick={() => setDurationTarget('20-45')}
-                      className={`py-2.5 px-4 rounded-xl text-sm font-semibold border flex items-center justify-between transition ${
+                      className={`py-2.5 px-4 rounded-xl text-sm font-semibold border flex items-center justify-between btn-spell ${
                         durationTarget === '20-45'
-                          ? 'bg-accent/15 border-accent text-accent'
+                          ? 'bg-accent/20 border-accent text-accent-light shadow-sm'
                           : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
                       }`}
                     >
@@ -290,9 +286,9 @@ export default function NewProjectPage() {
                     <button
                       type="button"
                       onClick={() => setDurationTarget('45-60')}
-                      className={`py-2.5 px-4 rounded-xl text-sm font-semibold border flex items-center justify-between transition ${
+                      className={`py-2.5 px-4 rounded-xl text-sm font-semibold border flex items-center justify-between btn-spell ${
                         durationTarget === '45-60'
-                          ? 'bg-accent/15 border-accent text-accent'
+                          ? 'bg-accent/20 border-accent text-accent-light shadow-sm'
                           : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
                       }`}
                     >
@@ -343,13 +339,13 @@ export default function NewProjectPage() {
                         key={st.id}
                         type="button"
                         onClick={() => setCaptionPreset(st.id)}
-                        className={`p-3 rounded-xl border text-left transition ${
+                        className={`p-3 rounded-xl border text-left btn-spell ${
                           captionPreset === st.id
-                            ? 'bg-accent/15 border-accent'
-                            : 'bg-surfaceElevated border-border hover:border-muted'
+                            ? 'bg-accent/20 border-accent shadow-sm'
+                            : 'bg-surfaceElevated border-border hover:border-muted/80'
                         }`}
                       >
-                        <p className={`text-sm font-bold ${captionPreset === st.id ? 'text-accent' : 'text-foreground'}`}>
+                        <p className={`text-sm font-bold ${captionPreset === st.id ? 'text-accent-light' : 'text-foreground'}`}>
                           {st.name}
                         </p>
                         <p className="text-[11px] text-muted">{st.desc}</p>
@@ -422,7 +418,7 @@ export default function NewProjectPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-accent hover:bg-accent-hover text-white text-base font-bold py-4 rounded-xl shadow-accent-glow transition flex items-center justify-center space-x-2 disabled:opacity-50"
+              className="w-full bg-accent hover:bg-accent-hover text-white text-base font-bold py-4 rounded-xl shadow-accent-glow btn-spell flex items-center justify-center space-x-2.5 disabled:opacity-50 group"
             >
               {isSubmitting ? (
                 <>
@@ -431,7 +427,7 @@ export default function NewProjectPage() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5 transition-transform duration-300 group-hover:rotate-12" />
                   <span>Start Autonomous Clipping</span>
                 </>
               )}

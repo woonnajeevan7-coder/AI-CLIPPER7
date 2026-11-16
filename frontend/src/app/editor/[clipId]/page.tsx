@@ -157,7 +157,7 @@ export default function TranscriptEditorPage() {
         <div className="w-full sm:w-auto flex items-center justify-end space-x-2 sm:space-x-3">
           <button
             onClick={resetAllWords}
-            className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition"
+            className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition btn-spell"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Words</span>
@@ -172,7 +172,7 @@ export default function TranscriptEditorPage() {
               a.click();
               document.body.removeChild(a);
             }}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-bold text-foreground transition"
+            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-bold text-foreground btn-spell shadow-sm"
           >
             <Download className="w-3.5 h-3.5 text-accent" />
             <span>Download</span>
@@ -181,14 +181,21 @@ export default function TranscriptEditorPage() {
           <button
             onClick={handleSaveTrim}
             disabled={isSaving}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition disabled:opacity-50"
+            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold shadow-accent-glow btn-spell disabled:opacity-50 transition-all duration-200 ${
+              savedSuccess
+                ? 'bg-emerald-600 text-white shadow-radar-glow'
+                : 'bg-accent hover:bg-accent-hover text-white'
+            }`}
           >
             {isSaving ? (
-              <span>Saving Trim...</span>
+              <span className="flex items-center space-x-2">
+                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <span>Saving Trim...</span>
+              </span>
             ) : savedSuccess ? (
               <>
-                <Check className="w-4 h-4 text-emerald-300" />
-                <span className="text-emerald-300">Boundaries Applied</span>
+                <Check className="w-4 h-4 text-white animate-bounce" />
+                <span className="text-white">Boundaries Applied</span>
               </>
             ) : (
               <>
@@ -326,20 +333,20 @@ export default function TranscriptEditorPage() {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 p-4 bg-background border border-border rounded-xl max-h-64 overflow-y-auto">
+            <div className="flex flex-wrap gap-2 p-4 bg-background border border-border rounded-xl max-h-64 overflow-y-auto shadow-inner">
               {words.map((w) => (
                 <button
                   key={w.id}
                   onClick={() => toggleWordOmission(w.id)}
                   title={`${w.start}s - ${w.end}s (Click to ${w.deleted ? 'restore' : 'omit'})`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition flex items-center space-x-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono btn-spell flex items-center space-x-1.5 ${
                     w.deleted
-                      ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40 opacity-60'
-                      : 'bg-surfaceElevated hover:bg-surface border border-border text-foreground hover:border-accent/60 shadow-sm'
+                      ? 'bg-red-950/80 text-red-300 line-through border border-red-700/60 opacity-75'
+                      : 'bg-surfaceElevated hover:bg-surface border border-border text-foreground hover:border-accent hover:text-white shadow-sm'
                   }`}
                 >
                   <span>{w.word}</span>
-                  <span className="text-[10px] text-muted opacity-75">{w.start.toFixed(1)}s</span>
+                  <span className="text-[10px] text-muted opacity-80">{w.start.toFixed(1)}s</span>
                 </button>
               ))}
             </div>
@@ -361,13 +368,13 @@ export default function TranscriptEditorPage() {
                   key={style.id}
                   type="button"
                   onClick={() => setCaptionPreset(style.id)}
-                  className={`p-3 rounded-xl border text-left transition ${
+                  className={`p-3 rounded-xl border text-left btn-spell ${
                     captionPreset === style.id
-                      ? 'bg-accent/15 border-accent'
-                      : 'bg-surfaceElevated border-border hover:border-muted'
+                      ? 'bg-accent/20 border-accent shadow-sm'
+                      : 'bg-surfaceElevated border-border hover:border-muted/80'
                   }`}
                 >
-                  <p className={`text-xs font-bold ${captionPreset === style.id ? 'text-accent' : 'text-foreground'}`}>
+                  <p className={`text-xs font-bold ${captionPreset === style.id ? 'text-accent-light' : 'text-foreground'}`}>
                     {style.name}
                   </p>
                   <p className="text-[10px] text-muted">{style.desc}</p>

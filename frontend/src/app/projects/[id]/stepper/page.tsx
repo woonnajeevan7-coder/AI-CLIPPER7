@@ -226,11 +226,13 @@ export default function LiveStepperPage() {
               {currentProgress}%
             </span>
           </div>
-          <div className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border">
+          <div className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border relative">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 via-accent to-pink-500 rounded-full transition-all duration-500 ease-out"
+              className="h-full bg-gradient-to-r from-purple-500 via-accent to-pink-500 rounded-full transition-all duration-500 ease-out relative"
               style={{ width: `${currentProgress}%` }}
-            ></div>
+            >
+              <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/70 blur-[1px] rounded-full"></div>
+            </div>
           </div>
         </div>
 
@@ -240,47 +242,51 @@ export default function LiveStepperPage() {
             const Icon = st.icon;
             const isDone = currentProgress > st.targetProgress || isCompleted;
             const isCurrent = idx === currentStageIdx && !isCompleted;
-            const isPending = !isDone && !isCurrent;
 
             return (
               <div
                 key={st.id}
-                className={`p-4 rounded-2xl border transition flex items-start space-x-4 ${
+                className={`p-4 rounded-2xl border transition-all duration-300 flex items-start space-x-4 ${
                   isCurrent
-                    ? 'bg-surfaceElevated border-accent shadow-accent-glow'
+                    ? 'bg-surfaceElevated border-accent shadow-accent-glow card-spell scale-[1.01]'
                     : isDone
-                    ? 'bg-surfaceElevated/40 border-border opacity-90'
-                    : 'bg-surface/40 border-borderSubtle opacity-40'
+                    ? 'bg-surfaceElevated/50 border-border opacity-95'
+                    : 'bg-surface/60 border-borderSubtle opacity-65'
                 }`}
               >
                 {/* Step Circle */}
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition ${
-                    isDone
-                      ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
-                      : isCurrent
-                      ? 'bg-accent/20 border border-accent text-accent animate-pulse'
-                      : 'bg-surface border border-border text-muted'
-                  }`}
-                >
-                  {isDone ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  ) : (
-                    <Icon className="w-5 h-5" />
+                <div className="relative flex items-center justify-center flex-shrink-0">
+                  {isCurrent && (
+                    <span className="animate-ping absolute inline-flex h-10 w-10 rounded-xl bg-accent/40 opacity-75"></span>
                   )}
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center relative z-10 transition-transform duration-300 ${
+                      isDone
+                        ? 'bg-emerald-500/15 border border-emerald-500/50 text-emerald-400 shadow-sm'
+                        : isCurrent
+                        ? 'bg-accent/25 border border-accent text-accent-light shadow-accent-glow'
+                        : 'bg-surface border border-border text-muted'
+                    }`}
+                  >
+                    {isDone ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    ) : (
+                      <Icon className="w-5 h-5" />
+                    )}
+                  </div>
                 </div>
 
                 {/* Step Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
-                    <h3 className={`text-sm font-bold ${isCurrent ? 'text-accent' : 'text-foreground'}`}>
+                    <h3 className={`text-sm font-bold ${isCurrent ? 'text-accent-light' : 'text-foreground'}`}>
                       {st.name}
                     </h3>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-muted">
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-muted font-medium">
                       {st.agent}
                     </span>
                   </div>
-                  <p className="text-xs text-muted mt-0.5 leading-relaxed">
+                  <p className="text-xs text-muted mt-0.5 leading-relaxed font-sans">
                     {st.desc}
                   </p>
                 </div>
@@ -290,20 +296,26 @@ export default function LiveStepperPage() {
         </div>
 
         {/* Real-time Terminal Log Viewer */}
-        <div className="bg-background border border-border rounded-2xl p-4 overflow-hidden">
+        <div className="bg-background border border-border rounded-2xl p-4 overflow-hidden shadow-inner">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-borderSubtle text-xs font-mono text-muted">
             <div className="flex items-center space-x-2">
               <Terminal className="w-4 h-4 text-accent" />
-              <span>Agent Execution Telemetry Log</span>
+              <span className="text-foreground font-semibold">Agent Execution Telemetry Log</span>
             </div>
-            <span className="text-[10px] text-emerald-400 font-bold">STREAM ACTIVE</span>
+            <div className="flex items-center space-x-1.5 text-[10px] text-emerald-400 font-bold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+              </span>
+              <span>STREAM ACTIVE</span>
+            </div>
           </div>
 
           <div className="font-mono text-xs text-muted space-y-1.5 max-h-40 overflow-y-auto pr-2">
             {logs.map((log, i) => (
               <div key={i} className="leading-relaxed flex items-start space-x-2">
-                <span className="text-accent/60 select-none">&gt;</span>
-                <span className={i === logs.length - 1 ? 'text-foreground font-semibold' : ''}>
+                <span className="text-accent/70 select-none font-bold">&gt;</span>
+                <span className={i === logs.length - 1 ? 'text-foreground font-semibold' : 'text-muted'}>
                   {log}
                 </span>
               </div>
@@ -313,13 +325,13 @@ export default function LiveStepperPage() {
 
         {/* Completed Navigation Action */}
         {isCompleted && (
-          <div className="mt-8 pt-6 border-t border-border flex justify-end">
+          <div className="mt-8 pt-6 border-t border-border flex justify-end animate-fadeIn">
             <button
               onClick={() => router.push(`/projects/${projectId}`)}
-              className="inline-flex items-center space-x-2 bg-accent hover:bg-accent-hover text-white text-sm font-bold px-6 py-3.5 rounded-xl shadow-accent-glow transition transform hover:-translate-y-0.5"
+              className="inline-flex items-center space-x-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-bold px-6 py-3.5 rounded-xl shadow-accent-glow btn-spell group"
             >
               <span>View Generated Shorts Grid</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
             </button>
           </div>
         )}

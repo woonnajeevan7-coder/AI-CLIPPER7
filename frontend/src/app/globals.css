@@ -43,3 +43,29 @@ body {
   background-color: #8B5CF6;
   color: #FFFFFF;
 }
+
+/* Design Spells: Tactile Micro-Interactions & Polished Motion */
+@layer utilities {
+  /* GPU-Accelerated Interactive Button Press */
+  .btn-spell {
+    @apply transition-all duration-150 ease-out active:scale-[0.97] active:translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+    will-change: transform;
+  }
+
+  /* Silky Card Lift & Border Glow */
+  .card-spell {
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:border-accent/50 hover:shadow-card-glow-hover;
+    will-change: transform, box-shadow;
+  }
+
+  /* Shimmering Border Beam for Highlights */
+  .shimmer-badge {
+    background-size: 200% 100%;
+    animation: shimmer 3s infinite linear;
+  }
+
+  /* High-Contrast Focus Ring */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+}
