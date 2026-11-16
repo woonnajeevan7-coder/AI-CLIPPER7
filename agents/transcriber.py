@@ -119,9 +119,59 @@ class TranscriberAgent:
             return False
 
     def transcribe_with_groq_whisper(self, audio_path: Path, api_key: str) -> List[WordTimestamp]:
-        """Ultra-fast speech-to-text using Groq Whisper Large v3 Turbo with word-level timestamps."""
+        """
+        Ultra-fast speech-to-text using Groq Whisper Large v3 Turbo with word-level timestamps.
+        If extracted audio exceeds 25MB, splits into 10-minute segments using FFmpeg,
+        transcribes each chunk with Groq Whisper, and accumulates time offsets (t_offset = chunk_idx * 600.0s).
+        """
         from groq import Groq
         client = Groq(api_key=api_key)
+
+        file_size = audio_path.stat().st_size if audio_path.exists() else 0
+        max_payload_size = 25 * 1024 * 1024  # 25MB Groq API limit
+
+        if file_size > max_payload_size:
+            print(f"[TranscriberAgent] Audio file ({file_size / (1024*1024):.2f}MB) exceeds 25MB limit. Splitting into 10-minute chunks...")
+            chunk_pattern = self.temp_dir / f"{audio_path.stem}_chunk_%03d.mp3"
+            cmd = [
+                str(self.ffmpeg_bin),
+                "-i", str(audio_path),
+                "-f", "segment",
+                "-segment_time", "600",
+                "-c", "copy",
+                "-y",
+                str(chunk_pattern)
+            ]
+            try:
+                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                chunk_files = sorted(self.temp_dir.glob(f"{audio_path.stem}_chunk_*.mp3"))
+                all_words: List[WordTimestamp] = []
+                for chunk_idx, chunk_file in enumerate(chunk_files):
+                    t_offset = chunk_idx * 600.0
+                    chunk_words = self._transcribe_single_audio_file(chunk_file, api_key, client)
+                    for w in chunk_words:
+                        all_words.append(WordTimestamp(
+                            word=w.word,
+                            start=round(w.start + t_offset, 3),
+                            end=round(w.end + t_offset, 3),
+                            is_keyword=w.is_keyword,
+                            emoji=w.emoji
+                        ))
+                    try:
+                        chunk_file.unlink()
+                    except Exception:
+                        pass
+                return all_words
+            except Exception as e:
+                print(f"[TranscriberAgent] Error during chunked transcription: {e}, falling back to single file...")
+
+        return self._transcribe_single_audio_file(audio_path, api_key, client)
+
+    def _transcribe_single_audio_file(self, audio_path: Path, api_key: str, client: Any = None) -> List[WordTimestamp]:
+        if client is None:
+            from groq import Groq
+            client = Groq(api_key=api_key)
+
         with open(audio_path, "rb") as f:
             response = client.audio.transcriptions.create(
                 file=(audio_path.name, f.read()),
