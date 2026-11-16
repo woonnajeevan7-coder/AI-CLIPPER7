@@ -49,6 +49,12 @@ def create_project(
             detail=f"Monthly limit of {plan_limit} clips reached for plan '{current_user.plan}'. Upgrade to Pro for more."
         )
 
+    if current_clips_count + req.num_clips > plan_limit:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Requested {req.num_clips} clips would exceed monthly limit of {plan_limit} (currently used: {current_clips_count}) for plan '{current_user.plan}'. Upgrade to Pro for more."
+        )
+
     # 2. SSRF Protection on URL Ingestion
     validated_url = req.source_url
     if req.source_type == "youtube" and req.source_url:

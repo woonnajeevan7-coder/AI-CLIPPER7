@@ -318,6 +318,96 @@ def test_cors_restricted_to_known_origins():
     assert "access-control-allow-origin" not in resp_invalid.headers
 
 
+def test_usage_increment_and_plan_limit_enforcement(monkeypatch):
+    from backend.tasks import process_pipeline_task
+    from agents.orchestrator import ClipperOrchestratorAgent
+
+    monkeypatch.setattr("backend.routes.projects.process_pipeline_task.delay", lambda *args, **kwargs: None)
+
+    user = create_test_user(f"quota_user_{uuid.uuid4().hex[:8]}@example.com", plan="free")
+    token = create_access_token({"sub": user.id, "email": user.email})
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Initial usage check
+    usage_init = client.get(f"{settings.API_V1_PREFIX}/usage/current", headers=headers).json()
+    assert usage_init["clips_used"] == 0
+    assert usage_init["monthly_limit"] == 5
+    assert usage_init["remaining_clips"] == 5
+
+    # 2. Mock orchestrator to render 3 clips and mock storage
+    from pathlib import Path
+    monkeypatch.setattr("backend.tasks.storage.upload_file", lambda path, key: f"https://mock-storage.com/{key}")
+
+    mock_clips = [
+        {"data": {"title": f"Clip {i}", "duration": 15.0, "viral_score": 90}, "path": f"temp_media/clip_{i}.mp4", "layout": "single_face"}
+        for i in range(1, 4)
+    ]
+    def mock_run_pipeline(self, *args, **kwargs):
+        yield {"agent": "mock", "status": "done", "progress": 100, "result": mock_clips}
+
+    monkeypatch.setattr(ClipperOrchestratorAgent, "run_pipeline", mock_run_pipeline)
+
+    # 3. Create project with num_clips=3
+    proj_resp = client.post(
+        f"{settings.API_V1_PREFIX}/projects/",
+        json={"title": "Quota Test Project", "source_type": "upload", "source_url": "temp_media/input.mp4", "num_clips": 3},
+        headers=headers
+    )
+    assert proj_resp.status_code == 201
+    proj_id = proj_resp.json()["project_id"]
+
+    # Run the pipeline task which renders clips and increments Usage
+    process_pipeline_task(proj_id)
+
+    # 4. Verify Usage table incremented to 3
+    usage_after_3 = client.get(f"{settings.API_V1_PREFIX}/usage/current", headers=headers).json()
+    assert usage_after_3["clips_used"] == 3
+    assert usage_after_3["remaining_clips"] == 2
+
+    # 5. Attempt to create project requesting 3 clips when remaining is 2 -> 403 Forbidden
+    proj_overflow = client.post(
+        f"{settings.API_V1_PREFIX}/projects/",
+        json={"title": "Overflow Project", "source_type": "upload", "source_url": "temp_media/input.mp4", "num_clips": 3},
+        headers=headers
+    )
+    assert proj_overflow.status_code == 403
+    assert "would exceed monthly limit" in proj_overflow.json()["detail"].lower()
+
+    # 6. Render 2 more clips to reach exact cap (5 clips)
+    from backend.database import increment_user_usage
+    db = SessionLocal()
+    increment_user_usage(db=db, user_id=user.id, clips_delta=2)
+    db.close()
+
+    usage_capped = client.get(f"{settings.API_V1_PREFIX}/usage/current", headers=headers).json()
+    assert usage_capped["clips_used"] == 5
+    assert usage_capped["remaining_clips"] == 0
+
+    # 7. Attempt project when fully capped -> 403 Forbidden
+    proj_capped = client.post(
+        f"{settings.API_V1_PREFIX}/projects/",
+        json={"title": "Capped Project", "source_type": "upload", "source_url": "temp_media/input.mp4", "num_clips": 1},
+        headers=headers
+    )
+    assert proj_capped.status_code == 403
+    assert "limit of 5 clips reached" in proj_capped.json()["detail"].lower()
+
+    # 8. Upgrade to Pro plan -> creation succeeds
+    db = SessionLocal()
+    u = db.query(User).filter(User.id == user.id).first()
+    u.plan = "pro"
+    db.commit()
+    db.close()
+
+    proj_pro = client.post(
+        f"{settings.API_V1_PREFIX}/projects/",
+        json={"title": "Pro Project", "source_type": "upload", "source_url": "temp_media/input.mp4", "num_clips": 3},
+        headers=headers
+    )
+    assert proj_pro.status_code == 201
+
+
+
 
 
 

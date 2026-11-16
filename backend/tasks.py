@@ -9,7 +9,7 @@ from celery import Celery
 from datetime import datetime, timezone
 
 from .config import settings
-from .database import SessionLocal
+from .database import SessionLocal, increment_user_usage
 from .models import Job, Project, Transcript, Clip, User, Usage
 from .storage import storage
 from agents import ClipperOrchestratorAgent
@@ -127,6 +127,18 @@ def process_pipeline_task(self, project_id: str):
                 r2_key=r2_key
             )
             db.add(db_clip)
+
+        # Increment Usage table
+        if rendered_results:
+            total_duration_sec = sum(
+                float(item["data"].get("duration", 30.0)) for item in rendered_results
+            )
+            increment_user_usage(
+                db=db,
+                user_id=project.user_id,
+                clips_delta=len(rendered_results),
+                minutes_delta=round(total_duration_sec / 60.0, 2)
+            )
 
         # Update Project and Job status
         project.status = "completed"

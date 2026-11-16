@@ -26,3 +26,35 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def increment_user_usage(
+    db: Session,
+    user_id: str,
+    clips_delta: int = 0,
+    minutes_delta: float = 0.0
+):
+    """
+    Increments or initializes the monthly Usage record for a user.
+    """
+    from datetime import datetime, timezone
+    from .models import Usage
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
+    usage = db.query(Usage).filter(
+        Usage.user_id == user_id,
+        Usage.period_month == current_month
+    ).first()
+    if not usage:
+        usage = Usage(
+            user_id=user_id,
+            period_month=current_month,
+            clips_created=0,
+            minutes_transcribed=0.0
+        )
+        db.add(usage)
+    usage.clips_created += clips_delta
+    usage.minutes_transcribed = round(usage.minutes_transcribed + minutes_delta, 2)
+    db.commit()
+    db.refresh(usage)
+    return usage
+
