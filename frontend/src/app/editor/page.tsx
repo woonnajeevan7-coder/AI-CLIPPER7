@@ -84,21 +84,25 @@ export default function TranscriptEditorPage() {
               Click any word to delete or restore it. Boundaries re-render instantly without dead air.
             </p>
             <div className="flex flex-wrap gap-2 p-4 bg-slate-950 rounded-xl border border-slate-800" role="group" aria-label="Transcript words to toggle">
-              {words.map((w) => (
-                <button
-                  key={w.id}
-                  onClick={() => toggleWord(w.id)}
-                  aria-pressed={!w.deleted}
-                  aria-label={`${w.text} (${w.deleted ? 'deleted, click to restore' : 'active, click to omit'})`}
-                  className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition min-h-[36px] focus-visible:ring-2 focus-visible:ring-purple-400 ${
-                    w.deleted
-                      ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40'
-                      : 'bg-white hover:bg-slate-100 text-black border border-slate-200 shadow-sm'
-                  }`}
-                >
-                  {w.text}
-                </button>
-              ))}
+              {(words || []).length > 0 ? (
+                (words || []).map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => toggleWord(w.id)}
+                    aria-pressed={!w.deleted}
+                    aria-label={`${w.text} (${w.deleted ? 'deleted, click to restore' : 'active, click to omit'})`}
+                    className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition min-h-[36px] focus-visible:ring-2 focus-visible:ring-purple-400 ${
+                      w.deleted
+                        ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40'
+                        : 'bg-white hover:bg-slate-100 text-black border border-slate-200 shadow-sm'
+                    }`}
+                  >
+                    {w.text}
+                  </button>
+                ))
+              ) : (
+                <div className="text-sm text-slate-400 py-2">No transcript words loaded.</div>
+              )}
             </div>
           </div>
 

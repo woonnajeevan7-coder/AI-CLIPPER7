@@ -143,15 +143,27 @@ Respond ONLY with a valid JSON array of objects with this schema:
 
                 if isinstance(parsed_data, dict):
                     # In case LLM wrapped list in {"clips": [...]} or similar
+                    found_list = False
                     for v in parsed_data.values():
                         if isinstance(v, list):
                             parsed_data = v
+                            found_list = True
                             break
+                    if not found_list:
+                        if "candidate_id" in parsed_data:
+                            parsed_data = [parsed_data]
+                        else:
+                            continue
+
+                if not isinstance(parsed_data, list):
+                    continue
 
                 results: List[ClipMetadata] = []
                 cand_map = {c.candidate_id: c for c in candidates}
 
                 for item in parsed_data:
+                    if not isinstance(item, dict):
+                        continue
                     cid = item.get("candidate_id")
                     if cid not in cand_map:
                         continue

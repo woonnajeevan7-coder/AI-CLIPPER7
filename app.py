@@ -94,33 +94,39 @@ st.markdown("""
         font-size: 0.88rem;
         text-shadow: 0 1px 2px rgba(0,0,0,0.5);
     }
-    .agent-log {
+    .agent-log, div[data-testid="stMarkdownContainer"] .agent-log {
+        background-color: #ffffff !important;
         background: #ffffff !important;
-        border-left: 6px solid #8b5cf6 !important;
-        border-top: 1px solid #e2e8f0 !important;
-        border-right: 1px solid #e2e8f0 !important;
-        border-bottom: 1px solid #e2e8f0 !important;
-        padding: 16px 20px !important;
-        border-radius: 10px !important;
+        border-left: 8px solid #7c3aed !important;
+        border-top: 1px solid #cbd5e1 !important;
+        border-right: 1px solid #cbd5e1 !important;
+        border-bottom: 1px solid #cbd5e1 !important;
+        padding: 16px 22px !important;
+        border-radius: 12px !important;
         font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
         font-size: 1.05rem !important;
         color: #000000 !important;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35) !important;
-        margin-bottom: 14px !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+        margin-bottom: 16px !important;
         display: flex !important;
         align-items: center !important;
-        gap: 10px !important;
+        gap: 12px !important;
     }
-    .agent-badge {
+    .agent-log *, div[data-testid="stMarkdownContainer"] .agent-log * {
+        color: #000000 !important;
+    }
+    .agent-badge, div[data-testid="stMarkdownContainer"] .agent-badge {
         color: #1e1b4b !important;
         font-weight: 800 !important;
+        background-color: #e0e7ff !important;
         background: #e0e7ff !important;
-        padding: 4px 10px !important;
+        padding: 4px 12px !important;
         border-radius: 6px !important;
         border: 1px solid #c7d2fe !important;
         letter-spacing: 0.03em !important;
+        font-family: monospace !important;
     }
-    .agent-status-msg {
+    .agent-status-msg, div[data-testid="stMarkdownContainer"] .agent-status-msg {
         color: #000000 !important;
         font-weight: 800 !important;
         font-size: 1.05rem !important;
@@ -128,9 +134,9 @@ st.markdown("""
     }
     .agent-pulse {
         display: inline-block !important;
-        width: 10px !important;
-        height: 10px !important;
-        min-width: 10px !important;
+        width: 12px !important;
+        height: 12px !important;
+        min-width: 12px !important;
         border-radius: 50% !important;
         background-color: #10b981 !important;
         box-shadow: 0 0 10px #10b981, 0 0 20px #10b981 !important;
@@ -674,6 +680,20 @@ with tab_studio:
             st.subheader("📡 Live Agent Activity Stream")
             progress_bar = st.progress(0)
             agent_log_area = st.empty()
+            # Initial standby state with high-contrast inline styling
+            agent_log_area.markdown(
+                "<div role='log' aria-live='polite' aria-label='Autonomous pipeline telemetry' class='agent-log' "
+                "style='background-color: #ffffff !important; background: #ffffff !important; color: #000000 !important; "
+                "border-left: 8px solid #7c3aed !important; border: 2px solid #cbd5e1 !important; padding: 16px 22px !important; "
+                "border-radius: 12px !important; display: flex !important; align-items: center !important; gap: 12px !important; "
+                "box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;'>"
+                "<span class='agent-pulse' style='display:inline-block;width:12px;height:12px;min-width:12px;border-radius:50%;background-color:#10b981;box-shadow:0 0 10px #10b981;margin-right:6px;'></span>"
+                "<span style='font-size:1.3rem;'>🤖</span> "
+                "<span class='agent-badge' style='background-color:#e0e7ff !important; color:#1e1b4b !important; font-weight:800 !important; padding:4px 12px !important; border-radius:6px !important; border:1px solid #c7d2fe !important; font-family:monospace !important;'>[Orchestrator]</span> "
+                "<span class='agent-status-msg' style='color:#000000 !important; font-weight:800 !important; font-size:1.05rem !important;'>Initializing autonomous agent swarm...</span>"
+                "</div>",
+                unsafe_allow_html=True
+            )
 
             orchestrator = ClipperOrchestratorAgent(
                 project_root=PROJECT_ROOT,
@@ -702,10 +722,15 @@ with tab_studio:
                     
                     progress_bar.progress(progress)
                     agent_log_area.markdown(
-                        f"<div role='log' aria-live='polite' aria-label='Autonomous pipeline telemetry' class='agent-log'>"
-                        f"<span class='agent-pulse'></span>"
-                        f"🤖 <span class='agent-badge'>[{agent}]</span> "
-                        f"<span class='agent-status-msg'>{status_text}</span>"
+                        f"<div role='log' aria-live='polite' aria-label='Autonomous pipeline telemetry' class='agent-log' "
+                        f"style='background-color: #ffffff !important; background: #ffffff !important; color: #000000 !important; "
+                        f"border-left: 8px solid #7c3aed !important; border: 2px solid #cbd5e1 !important; padding: 16px 22px !important; "
+                        f"border-radius: 12px !important; display: flex !important; align-items: center !important; gap: 12px !important; "
+                        f"box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;'>"
+                        f"<span class='agent-pulse' style='display:inline-block;width:12px;height:12px;min-width:12px;border-radius:50%;background-color:#10b981;box-shadow:0 0 10px #10b981;margin-right:6px;'></span>"
+                        f"<span style='font-size:1.3rem;'>🤖</span> "
+                        f"<span class='agent-badge' style='background-color:#e0e7ff !important; color:#1e1b4b !important; font-weight:800 !important; padding:4px 12px !important; border-radius:6px !important; border:1px solid #c7d2fe !important; font-family:monospace !important;'>[{agent}]</span> "
+                        f"<span class='agent-status-msg' style='color:#000000 !important; font-weight:800 !important; font-size:1.05rem !important;'>{status_text}</span>"
                         f"</div>",
                         unsafe_allow_html=True
                     )

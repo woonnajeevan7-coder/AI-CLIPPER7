@@ -120,67 +120,69 @@ class SmartFramingAgent:
             except Exception:
                 cascade = None
 
-        total_samples = max(2, int(duration * sample_fps))
-        sample_interval = duration / total_samples
+        try:
+            total_samples = max(2, int(duration * sample_fps))
+            sample_interval = duration / total_samples
 
-        scale_mult = 2.0 if min(width, height) < 480 else 1.0
+            scale_mult = 2.0 if min(width, height) < 480 else 1.0
 
-        for i in range(total_samples):
-            t_offset = i * sample_interval
-            target_time = start_seconds + t_offset
-            target_frame = int(target_time * fps)
-            cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
-            ret, frame = cap.read()
-            if not ret or frame is None:
-                continue
+            for i in range(total_samples):
+                t_offset = i * sample_interval
+                target_time = start_seconds + t_offset
+                target_frame = int(target_time * fps)
+                cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
+                ret, frame = cap.read()
+                if not ret or frame is None:
+                    continue
 
-            if scale_mult != 1.0:
-                proc_frame = cv2.resize(frame, (0, 0), fx=scale_mult, fy=scale_mult, interpolation=cv2.INTER_LINEAR)
-            else:
-                proc_frame = frame
+                if scale_mult != 1.0:
+                    proc_frame = cv2.resize(frame, (0, 0), fx=scale_mult, fy=scale_mult, interpolation=cv2.INTER_LINEAR)
+                else:
+                    proc_frame = frame
 
-            faces = []
-            if mp_detector:
-                try:
-                    import mediapipe as mp
-                    rgb = np.ascontiguousarray(cv2.cvtColor(proc_frame, cv2.COLOR_BGR2RGB))
-                    mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                    detection_result = mp_detector.detect(mp_img)
-                    for det in detection_result.detections:
-                        bbox = det.bounding_box
-                        x = int(bbox.origin_x / scale_mult)
-                        y = int(bbox.origin_y / scale_mult)
-                        w = int(bbox.width / scale_mult)
-                        h = int(bbox.height / scale_mult)
-                        cx = x + w // 2
-                        cy = y + h // 2
-                        faces.append({"x": x, "y": y, "w": w, "h": h, "cx": cx, "cy": cy})
-                except Exception:
-                    pass
+                faces = []
+                if mp_detector:
+                    try:
+                        import mediapipe as mp
+                        rgb = np.ascontiguousarray(cv2.cvtColor(proc_frame, cv2.COLOR_BGR2RGB))
+                        mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                        detection_result = mp_detector.detect(mp_img)
+                        for det in detection_result.detections:
+                            bbox = det.bounding_box
+                            x = int(bbox.origin_x / scale_mult)
+                            y = int(bbox.origin_y / scale_mult)
+                            w = int(bbox.width / scale_mult)
+                            h = int(bbox.height / scale_mult)
+                            cx = x + w // 2
+                            cy = y + h // 2
+                            faces.append({"x": x, "y": y, "w": w, "h": h, "cx": cx, "cy": cy})
+                    except Exception:
+                        pass
 
-            if not faces and cascade and not cascade.empty():
-                try:
-                    gray = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2GRAY)
-                    min_s = int(15 * scale_mult)
-                    detected = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(min_s, min_s))
-                    for (x, y, w, h) in detected:
-                        ox = int(x / scale_mult)
-                        oy = int(y / scale_mult)
-                        ow = int(w / scale_mult)
-                        oh = int(h / scale_mult)
-                        cx = ox + ow // 2
-                        cy = oy + oh // 2
-                        faces.append({"x": ox, "y": oy, "w": ow, "h": oh, "cx": cx, "cy": cy})
-                except Exception:
-                    pass
+                if not faces and cascade and not cascade.empty():
+                    try:
+                        gray = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2GRAY)
+                        min_s = int(15 * scale_mult)
+                        detected = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(min_s, min_s))
+                        for (x, y, w, h) in detected:
+                            ox = int(x / scale_mult)
+                            oy = int(y / scale_mult)
+                            ow = int(w / scale_mult)
+                            oh = int(h / scale_mult)
+                            cx = ox + ow // 2
+                            cy = oy + oh // 2
+                            faces.append({"x": ox, "y": oy, "w": ow, "h": oh, "cx": cx, "cy": cy})
+                    except Exception:
+                        pass
 
-            faces.sort(key=lambda f: f["cx"])
-            records.append({
-                "time_offset": round(t_offset, 2),
-                "faces": faces
-            })
+                faces.sort(key=lambda f: f["cx"])
+                records.append({
+                    "time_offset": round(t_offset, 2),
+                    "faces": faces
+                })
+        finally:
+            cap.release()
 
-        cap.release()
         return records, width, height
 
     def _build_single_face_plan(

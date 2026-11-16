@@ -210,7 +210,8 @@ Timestamped Video Transcript:
             if cid > target_candidates:
                 break
             start_s, hook_text = time_entries[idx]
-            end_s = start_s + min_duration + (cid * 3) % (max_duration - min_duration)
+            dur_range = max(1, max_duration - min_duration)
+            end_s = start_s + min_duration + ((cid * 3) % dur_range)
             candidates.append(CandidateClip(
                 candidate_id=cid,
                 title=f"Viral Highlight {cid}",

@@ -61,12 +61,17 @@ class MultiLanguageEngine:
                     response_format="verbose_json"
                 )
 
+        def _safe_get(obj: Any, key: str, default: Any = None) -> Any:
+            if isinstance(obj, dict):
+                return obj.get(key, default)
+            return getattr(obj, key, default)
+
         words: List[WordTimestamp] = []
         segments = getattr(resp, "segments", [])
         for seg in segments:
-            text = seg.get("text", "").strip()
-            s_start = float(seg.get("start", 0.0))
-            s_end = float(seg.get("end", s_start + 1.0))
+            text = str(_safe_get(seg, "text", "")).strip()
+            s_start = float(_safe_get(seg, "start", 0.0))
+            s_end = float(_safe_get(seg, "end", s_start + 1.0))
             tokens = [t for t in text.split() if t]
             if tokens:
                 dur = (s_end - s_start) / len(tokens)

@@ -142,21 +142,20 @@ class VideoEditorAgent:
             last_v_tag = "[punched]"
 
         # Headline banner
+        has_subtitles = bool(ass_subtitle_path and Path(ass_subtitle_path).exists())
+        headline_out_tag = "[with_headline]" if has_subtitles else "[v]"
         filter_chain.append(
-            f"{last_v_tag}drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240[with_headline]"
+            f"{last_v_tag}drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240{headline_out_tag}"
         )
-        last_v_tag = "[with_headline]"
+        last_v_tag = headline_out_tag
 
         # Burn in ASS subtitles if provided
-        if ass_subtitle_path and Path(ass_subtitle_path).exists():
+        if has_subtitles:
             escaped_ass = str(Path(ass_subtitle_path).resolve().as_posix()).replace(":", r"\:")
             escaped_fonts_dir = str(self.fonts_dir.resolve().as_posix()).replace(":", r"\:")
             filter_chain.append(
                 f"{last_v_tag}subtitles='{escaped_ass}':fontsdir='{escaped_fonts_dir}'[v]"
             )
-            last_v_tag = "[v]"
-        else:
-            filter_chain[-1] = filter_chain[-1].replace("[with_headline]", "[v]")
             last_v_tag = "[v]"
 
         filter_complex_str = ";".join(filter_chain)

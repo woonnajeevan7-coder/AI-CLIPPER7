@@ -180,22 +180,27 @@ class TranscriberAgent:
                 timestamp_granularities=["word"]
             )
         
+        def _safe_get(obj: Any, key: str, default: Any = None) -> Any:
+            if isinstance(obj, dict):
+                return obj.get(key, default)
+            return getattr(obj, key, default)
+
         words: List[WordTimestamp] = []
         raw_words = getattr(response, "words", [])
         if raw_words:
             for w in raw_words:
                 words.append(WordTimestamp(
-                    word=str(w.get("word", "")).strip(),
-                    start=float(w.get("start", 0.0)),
-                    end=float(w.get("end", 0.0))
+                    word=str(_safe_get(w, "word", "")).strip(),
+                    start=float(_safe_get(w, "start", 0.0)),
+                    end=float(_safe_get(w, "end", 0.0))
                 ))
         else:
             # Fallback to segments
             segments = getattr(response, "segments", [])
             for seg in segments:
-                text = seg.get("text", "").strip()
-                s_start = float(seg.get("start", 0.0))
-                s_end = float(seg.get("end", s_start + 1.0))
+                text = str(_safe_get(seg, "text", "")).strip()
+                s_start = float(_safe_get(seg, "start", 0.0))
+                s_end = float(_safe_get(seg, "end", s_start + 1.0))
                 tokens = [t for t in text.split() if t]
                 if tokens:
                     dur = (s_end - s_start) / len(tokens)
