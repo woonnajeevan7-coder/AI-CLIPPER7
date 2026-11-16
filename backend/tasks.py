@@ -6,7 +6,7 @@ with exponential-backoff retries and dead-letter failure handling.
 
 from pathlib import Path
 from celery import Celery
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .config import settings
 from .database import SessionLocal
@@ -56,7 +56,7 @@ def process_pipeline_task(self, project_id: str):
         db.commit()
     else:
         job.status = "running"
-        job.started_at = datetime.utcnow()
+        job.started_at = datetime.now(timezone.utc)
         db.commit()
 
     project_root = Path(__file__).parent.parent
@@ -124,7 +124,7 @@ def process_pipeline_task(self, project_id: str):
         project.status = "completed"
         job.status = "completed"
         job.progress = 100
-        job.completed_at = datetime.utcnow()
+        job.completed_at = datetime.now(timezone.utc)
         db.commit()
         return {"status": "success", "rendered_count": len(rendered_results)}
 

@@ -4,7 +4,7 @@ Defines complete enterprise schema for users, projects, jobs, transcripts, clips
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import (
     Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON
@@ -12,6 +12,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 class User(Base):
@@ -24,7 +28,7 @@ class User(Base):
     google_id = Column(String(255), unique=True, nullable=True)
     plan = Column(String(50), default="free", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     usage_records = relationship("Usage", back_populates="user", cascade="all, delete-orphan")
@@ -41,7 +45,7 @@ class Project(Base):
     source_url = Column(Text, nullable=True)
     video_id = Column(String(100), index=True, nullable=True)
     status = Column(String(50), default="pending")        # 'pending', 'processing', 'completed', 'failed'
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     user = relationship("User", back_populates="projects")
     jobs = relationship("Job", back_populates="project", cascade="all, delete-orphan")
@@ -74,7 +78,7 @@ class Transcript(Base):
     raw_text = Column(Text, nullable=False)
     words_json = Column(JSON, nullable=False)  # List of WordTimestamp dicts
     language = Column(String(20), default="en")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     project = relationship("Project", back_populates="transcripts")
 
@@ -97,7 +101,7 @@ class Clip(Base):
     headline_variants_json = Column(JSON, nullable=True)
     video_url = Column(Text, nullable=True)
     r2_key = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     project = relationship("Project", back_populates="clips")
     metrics = relationship("ClipMetric", back_populates="clip", cascade="all, delete-orphan")
@@ -122,7 +126,7 @@ class Usage(Base):
     period_month = Column(String(7), nullable=False)  # 'YYYY-MM'
     clips_created = Column(Integer, default=0)
     minutes_transcribed = Column(Float, default=0.0)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     user = relationship("User", back_populates="usage_records")
 
@@ -137,7 +141,7 @@ class PublishTarget(Base):
     access_token = Column(Text, nullable=False)
     refresh_token = Column(Text, nullable=True)
     token_expires_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     user = relationship("User", back_populates="publish_targets")
     metrics = relationship("ClipMetric", back_populates="publish_target")
@@ -154,7 +158,7 @@ class ClipMetric(Base):
     likes = Column(Integer, default=0)
     shares = Column(Integer, default=0)
     retention_rate = Column(Float, default=0.0)
-    last_synced_at = Column(DateTime, default=datetime.utcnow)
+    last_synced_at = Column(DateTime, default=utc_now)
 
     clip = relationship("Clip", back_populates="metrics")
     publish_target = relationship("PublishTarget", back_populates="metrics")

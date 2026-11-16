@@ -3,7 +3,7 @@ Usage & Billing API (/api/v1/usage)
 Tracks monthly quotas, clips created, and tier entitlements.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -32,7 +32,7 @@ def list_plans():
 
 @router.get("/current")
 def get_current_usage(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    current_month = datetime.utcnow().strftime("%Y-%m")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     usage = db.query(Usage).filter(
         Usage.user_id == current_user.id,
         Usage.period_month == current_month

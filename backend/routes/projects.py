@@ -3,7 +3,7 @@ Project Ingestion & Lifecycle API (/api/v1/projects)
 Enforces SSRF URL validation, checks tiered usage quotas, and triggers pipeline jobs.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -34,7 +34,7 @@ def create_project(
     db: Session = Depends(get_db)
 ):
     # 1. Enforce usage limits for current billing period
-    current_month = datetime.utcnow().strftime("%Y-%m")
+    current_month = datetime.now(timezone.utc).strftime("%Y-%m")
     usage = db.query(Usage).filter(
         Usage.user_id == current_user.id,
         Usage.period_month == current_month

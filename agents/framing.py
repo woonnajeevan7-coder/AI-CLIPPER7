@@ -143,7 +143,7 @@ class SmartFramingAgent:
             if mp_detector:
                 try:
                     import mediapipe as mp
-                    rgb = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2RGB)
+                    rgb = np.ascontiguousarray(cv2.cvtColor(proc_frame, cv2.COLOR_BGR2RGB))
                     mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
                     detection_result = mp_detector.detect(mp_img)
                     for det in detection_result.detections:
