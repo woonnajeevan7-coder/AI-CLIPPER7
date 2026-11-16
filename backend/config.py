@@ -24,6 +24,16 @@ class Settings:
     # Groq Engine Brain
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
+    # CORS Configuration (Restricted to known origins)
+    CORS_ORIGINS: list[str] = [
+        origin.strip()
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8501,http://127.0.0.1:8501"
+        ).split(",")
+        if origin.strip()
+    ]
+
     def __init__(self):
         jwt_key = os.getenv("JWT_SECRET_KEY")
         if not jwt_key:

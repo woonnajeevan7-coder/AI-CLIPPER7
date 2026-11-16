@@ -291,5 +291,33 @@ def test_groq_api_key_passed_from_settings_to_orchestrator(monkeypatch):
     assert captured_init["provider"] == "groq"
 
 
+def test_cors_restricted_to_known_origins():
+    # 1. Known origin: http://localhost:3000
+    resp_valid = client.get(
+        "/health",
+        headers={"Origin": "http://localhost:3000"}
+    )
+    assert resp_valid.status_code == 200
+    assert resp_valid.headers.get("access-control-allow-origin") == "http://localhost:3000"
+    assert resp_valid.headers.get("access-control-allow-credentials") == "true"
+
+    # 2. Known origin: http://localhost:8501
+    resp_streamlit = client.get(
+        "/health",
+        headers={"Origin": "http://localhost:8501"}
+    )
+    assert resp_streamlit.status_code == 200
+    assert resp_streamlit.headers.get("access-control-allow-origin") == "http://localhost:8501"
+
+    # 3. Disallowed external origin: https://malicious-phishing-attacker.com
+    resp_invalid = client.get(
+        "/health",
+        headers={"Origin": "https://malicious-phishing-attacker.com"}
+    )
+    assert resp_invalid.status_code == 200
+    assert "access-control-allow-origin" not in resp_invalid.headers
+
+
+
 
 
