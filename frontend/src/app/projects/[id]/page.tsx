@@ -21,6 +21,7 @@ import {
 import { CardSkeleton } from '@/components/ui/LoadingSkeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import ErrorAlert from '@/components/ui/ErrorAlert';
+import { useAppStore } from '@/store';
 
 interface RubricDetails {
   hook_strength: number;
@@ -50,6 +51,7 @@ interface ClipCardData {
 export default function ProjectResultsPage() {
   const params = useParams();
   const projectId = params?.id as string;
+  const setClipsStore = useAppStore((state) => state.setClips);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,12 +67,14 @@ export default function ProjectResultsPage() {
   useEffect(() => {
     // Fetch clips or supply calibrated defaults
     const timer = setTimeout(() => {
-      setClips([
+      const loadedClips = [
         {
           id: 'clip_001',
           title: 'Connecting the Dots Intro',
           headline: 'THREE STORIES THAT CHANGED EVERYTHING',
           duration: 27.3,
+          start_seconds: 27.0,
+          end_seconds: 54.3,
           viral_score: 95,
           layout: 'single_face',
           video_url: '/sample_short.mp4',
@@ -93,6 +97,8 @@ export default function ProjectResultsPage() {
           title: 'Closest to Graduation',
           headline: 'WHAT I LEARNED SKIPPING COLLEGE',
           duration: 34.5,
+          start_seconds: 55.0,
+          end_seconds: 89.5,
           viral_score: 91,
           layout: 'single_face',
           video_url: '/sample_short_2.mp4',
@@ -115,6 +121,8 @@ export default function ProjectResultsPage() {
           title: 'Finding What You Love',
           headline: 'DO NOT SETTLE UNTIL YOU FIND IT',
           duration: 38.2,
+          start_seconds: 90.0,
+          end_seconds: 128.2,
           viral_score: 88,
           layout: 'single_face',
           video_url: '/sample_short_3.mp4',
@@ -132,7 +140,9 @@ export default function ProjectResultsPage() {
             bold_claim: 'The Only Way to Never Settle Again',
           },
         },
-      ]);
+      ];
+      setClips(loadedClips);
+      setClipsStore(loadedClips);
       setIsLoading(false);
     }, 600);
 

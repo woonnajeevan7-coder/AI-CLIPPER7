@@ -14,6 +14,7 @@ import {
   AlertCircle,
   ArrowRight,
 } from 'lucide-react';
+import { useAppStore } from '@/store';
 
 interface StageInfo {
   id: string;
@@ -72,6 +73,9 @@ export default function LiveStepperPage() {
   const params = useParams();
   const searchParams = useSearchParams();
 
+  const updatePipelineProgress = useAppStore((state) => state.updatePipelineProgress);
+  const setPipelineRunning = useAppStore((state) => state.setPipelineRunning);
+
   const projectId = params?.id as string;
   const jobId = searchParams?.get('job_id') || `job_${projectId}`;
   const projectTitle = searchParams?.get('title') || 'AI Clipping Project';
@@ -99,6 +103,7 @@ export default function LiveStepperPage() {
           const data = JSON.parse(event.data);
           if (data.progress !== undefined) {
             setCurrentProgress(data.progress);
+            updatePipelineProgress(data.progress, data.status ? `[${data.agent || 'SYSTEM'}] ${data.status}` : undefined);
             // Determine active stage
             const stageIndex = STAGES.findIndex((s) => s.targetProgress >= data.progress);
             if (stageIndex !== -1) setCurrentStageIdx(stageIndex);
@@ -108,6 +113,7 @@ export default function LiveStepperPage() {
           }
           if (data.progress >= 100 || data.status === 'completed') {
             setIsCompleted(true);
+            setPipelineRunning(false);
             sse?.close();
           }
         } catch (e) {
@@ -141,10 +147,12 @@ export default function LiveStepperPage() {
           const step = simulatedSteps[stepIdx];
           setCurrentProgress(step.progress);
           setCurrentStageIdx(step.stage);
+          updatePipelineProgress(step.progress, step.log);
           setLogs((prev) => [...prev.slice(-30), step.log]);
           stepIdx++;
           if (step.progress >= 100) {
             setIsCompleted(true);
+            setPipelineRunning(false);
             if (fallbackTimer) clearInterval(fallbackTimer);
           }
         }

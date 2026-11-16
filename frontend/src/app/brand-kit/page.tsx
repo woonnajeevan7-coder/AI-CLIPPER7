@@ -13,16 +13,20 @@ import {
   Eye,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
+import { useAppStore } from '@/store';
 
 export default function BrandKitPage() {
-  const [primaryColor, setPrimaryColor] = useState('#8B5CF6');
-  const [secondaryColor, setSecondaryColor] = useState('#EC4899');
-  const [fontFamily, setFontFamily] = useState('Inter');
-  const [captionPreset, setCaptionPreset] = useState('hormozi');
-  const [watermarkText, setWatermarkText] = useState('@mybrand');
-  const [watermarkPosition, setWatermarkPosition] = useState('top_right');
-  const [outroEnabled, setOutroEnabled] = useState(true);
-  const [outroText, setOutroText] = useState('Subscribe for daily business breakdowns');
+  const brandKit = useAppStore((state) => state.brandKit);
+  const updateBrandKit = useAppStore((state) => state.updateBrandKit);
+
+  const [primaryColor, setPrimaryColor] = useState(brandKit.primaryColor || '#8B5CF6');
+  const [secondaryColor, setSecondaryColor] = useState(brandKit.secondaryColor || '#EC4899');
+  const [fontFamily, setFontFamily] = useState(brandKit.fontFamily || 'Inter');
+  const [captionPreset, setCaptionPreset] = useState(brandKit.captionPreset || 'hormozi');
+  const [watermarkText, setWatermarkText] = useState(brandKit.watermarkText || '@mybrand');
+  const [watermarkPosition, setWatermarkPosition] = useState(brandKit.watermarkPosition || 'top_right');
+  const [outroEnabled, setOutroEnabled] = useState(brandKit.outroCtaEnabled ?? true);
+  const [outroText, setOutroText] = useState(brandKit.outroText || 'Subscribe for daily breakdowns');
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -62,6 +66,16 @@ export default function BrandKitPage() {
     };
 
     // Cache locally
+    updateBrandKit({
+      primaryColor,
+      secondaryColor,
+      fontFamily,
+      captionPreset,
+      watermarkText,
+      watermarkPosition,
+      outroCtaEnabled: outroEnabled,
+      outroText,
+    });
     localStorage.setItem('ai_clipper_brand_kit', JSON.stringify({
       primaryColor,
       secondaryColor,

@@ -17,9 +17,11 @@ import {
   ZoomIn,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
+import { useAppStore } from '@/store';
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const setProject = useAppStore((state) => state.setProject);
 
   // Mode: 'url' | 'upload'
   const [ingestMode, setIngestMode] = useState<'url' | 'upload'>('url');
@@ -91,16 +93,19 @@ export default function NewProjectPage() {
         // Fallback for standalone demo when backend is offline
         const mockJobId = `job_${Date.now()}`;
         const mockProjectId = `proj_${Date.now()}`;
+        setProject(mockProjectId, mockJobId, projectPayload.title);
         router.push(`/projects/${mockProjectId}/stepper?job_id=${mockJobId}&title=${encodeURIComponent(projectPayload.title)}`);
         return;
       }
 
       const data = await response.json();
+      setProject(data.project_id, data.job_id, data.title);
       router.push(`/projects/${data.project_id}/stepper?job_id=${data.job_id}&title=${encodeURIComponent(data.title)}`);
     } catch (err: any) {
       // In offline or local dev without active backend token, seamlessly route to the stepper
       const mockJobId = `job_${Date.now()}`;
       const mockProjectId = `proj_${Date.now()}`;
+      setProject(mockProjectId, mockJobId, title || 'New Video Project');
       router.push(`/projects/${mockProjectId}/stepper?job_id=${mockJobId}&title=${encodeURIComponent(title || 'New Video Project')}`);
     } finally {
       setIsSubmitting(false);

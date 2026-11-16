@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
+import { useAppStore } from '@/store';
 
 interface WordItem {
   id: number;
@@ -30,15 +31,18 @@ export default function TranscriptEditorPage() {
   const router = useRouter();
   const clipId = (params?.clipId as string) || 'clip_001';
 
+  const updateClipTrim = useAppStore((state) => state.updateClipTrim);
+  const clipInStore = useAppStore((state) => state.clips.find((c) => c.id === clipId));
+
   // Studio State
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0.0);
-  const [headline, setHeadline] = useState('THREE STORIES THAT CHANGED EVERYTHING');
+  const [headline, setHeadline] = useState(clipInStore?.headline || 'THREE STORIES THAT CHANGED EVERYTHING');
   const [captionPreset, setCaptionPreset] = useState('hormozi');
 
   // Boundaries & Trimming
-  const [startSeconds, setStartSeconds] = useState(27.0);
-  const [endSeconds, setEndSeconds] = useState(54.3);
+  const [startSeconds, setStartSeconds] = useState(clipInStore?.start_seconds ?? 27.0);
+  const [endSeconds, setEndSeconds] = useState(clipInStore?.end_seconds ?? 54.3);
   const totalDuration = Math.max(1.0, endSeconds - startSeconds);
 
   // Word-level interactive transcript
@@ -98,6 +102,7 @@ export default function TranscriptEditorPage() {
 
     try {
       // Dispatches real POST /api/v1/clips/{clip_id}/trim to backend
+      updateClipTrim(clipId, startSeconds, endSeconds);
       const res = await fetch(`http://localhost:8000/api/v1/clips/${clipId}/trim`, {
         method: 'POST',
         headers: {

@@ -16,13 +16,21 @@ import {
 import ErrorAlert from '@/components/ui/ErrorAlert';
 
 export default function SettingsPage() {
+  // Never pre-fill API keys from environment or defaults
   const [groqKey, setGroqKey] = useState('');
   const [showKey, setShowKey] = useState(false);
   const [useNvenc, setUseNvenc] = useState(true);
   const [storageType, setStorageType] = useState('local');
   const [resolution, setResolution] = useState('1080x1920');
 
-  const [capabilities, setCapabilities] = useState<any>({
+  const [capabilities, setCapabilities] = useState<{
+    ffmpeg: boolean;
+    ffprobe: boolean;
+    gpu_nvenc: boolean;
+    face_tracking: boolean;
+    database: boolean;
+    storage?: string;
+  }>({
     ffmpeg: true,
     ffprobe: true,
     gpu_nvenc: false,
@@ -34,7 +42,7 @@ export default function SettingsPage() {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Probe live system capabilities from /health
+  // Probe live system capabilities from backend /health
   useEffect(() => {
     fetch('http://localhost:8000/health')
       .then((res) => res.json())
@@ -46,11 +54,14 @@ export default function SettingsPage() {
         }
       })
       .catch(() => {
-        // Fallback defaults
+        // Fallback to local default capability flags
       });
 
-    const cachedKey = localStorage.getItem('user_groq_api_key');
-    if (cachedKey) setGroqKey(cachedKey);
+    // Check if user previously saved a custom key in their browser localStorage
+    const savedUserKey = localStorage.getItem('user_groq_api_key');
+    if (savedUserKey && typeof savedUserKey === 'string') {
+      setGroqKey(savedUserKey);
+    }
   }, []);
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -59,15 +70,26 @@ export default function SettingsPage() {
     setErrorMsg(null);
     setSavedSuccess(false);
 
-    if (groqKey) {
-      localStorage.setItem('user_groq_api_key', groqKey);
-    }
+    try {
+      if (groqKey.trim()) {
+        localStorage.setItem('user_groq_api_key', groqKey.trim());
+      } else {
+        localStorage.removeItem('user_groq_api_key');
+      }
 
-    setTimeout(() => {
+      localStorage.setItem('user_use_nvenc', JSON.stringify(useNvenc));
+      localStorage.setItem('user_storage_type', storageType);
+      localStorage.setItem('user_resolution', resolution);
+
+      setTimeout(() => {
+        setIsSaving(false);
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 2500);
+      }, 350);
+    } catch (err: any) {
+      setErrorMsg('Failed to save settings to local storage.');
       setIsSaving(false);
-      setSavedSuccess(true);
-      setTimeout(() => setSavedSuccess(false), 2500);
-    }, 400);
+    }
   };
 
   return (
@@ -77,13 +99,13 @@ export default function SettingsPage() {
         <div>
           <div className="flex items-center space-x-2 text-xs font-mono text-accent mb-1 font-semibold">
             <SettingsIcon className="w-4 h-4" />
-            <span>STUDIO CONFIGURATION</span>
+            <span>SYSTEM CONFIGURATION</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight">
             Settings &amp; Infrastructure
           </h1>
           <p className="text-sm text-muted mt-1">
-            Configure render pipelines, hardware acceleration, and API credentials.
+            Hardware acceleration, API credentials, and output storage preferences.
           </p>
         </div>
 
@@ -97,7 +119,7 @@ export default function SettingsPage() {
           ) : savedSuccess ? (
             <>
               <Check className="w-4 h-4 text-emerald-300" />
-              <span className="text-emerald-300">Preferences Saved</span>
+              <span className="text-emerald-300">Settings Saved</span>
             </>
           ) : (
             <>
@@ -115,14 +137,14 @@ export default function SettingsPage() {
       )}
 
       <form onSubmit={handleSaveSettings} className="space-y-8">
-        {/* Live System Capabilities Health Box */}
+        {/* Backend Probed Capabilities Box */}
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-card-glow">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
               <Activity className="w-4 h-4 text-emerald-400" />
-              <span>Real-Time Backend Capabilities (/health)</span>
+              <span>Probed System Capabilities (/health)</span>
             </div>
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
               OPERATIONAL
             </span>
           </div>
@@ -130,21 +152,27 @@ export default function SettingsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
             <div className="p-3 rounded-xl bg-surfaceElevated border border-border flex items-center justify-between">
               <span className="text-muted">FFmpeg:</span>
-              <span className="text-emerald-400 font-bold">READY</span>
+              <span className={capabilities.ffmpeg ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                {capabilities.ffmpeg ? 'READY' : 'UNAVAILABLE'}
+              </span>
             </div>
             <div className="p-3 rounded-xl bg-surfaceElevated border border-border flex items-center justify-between">
               <span className="text-muted">FFprobe:</span>
-              <span className="text-emerald-400 font-bold">READY</span>
+              <span className={capabilities.ffprobe ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                {capabilities.ffprobe ? 'READY' : 'UNAVAILABLE'}
+              </span>
             </div>
             <div className="p-3 rounded-xl bg-surfaceElevated border border-border flex items-center justify-between">
               <span className="text-muted">NVENC GPU:</span>
               <span className={capabilities.gpu_nvenc ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                {capabilities.gpu_nvenc ? 'ONLINE' : 'CPU FALLBACK'}
+                {capabilities.gpu_nvenc ? 'DETECTED' : 'CPU FALLBACK'}
               </span>
             </div>
             <div className="p-3 rounded-xl bg-surfaceElevated border border-border flex items-center justify-between">
               <span className="text-muted">Face Tracking:</span>
-              <span className="text-emerald-400 font-bold">ACTIVE</span>
+              <span className={capabilities.face_tracking ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+                {capabilities.face_tracking ? 'ACTIVE' : 'UNAVAILABLE'}
+              </span>
             </div>
           </div>
         </div>
@@ -153,31 +181,33 @@ export default function SettingsPage() {
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-card-glow space-y-4">
           <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
             <Key className="w-4 h-4 text-accent" />
-            <span>LLM &amp; Whisper Inference Keys</span>
+            <span>LLM &amp; Whisper API Configuration</span>
           </div>
 
           <div>
             <label className="block text-xs font-mono text-muted mb-2">
-              Groq API Key (Optional User Override)
+              Groq API Key (Optional Client Override)
             </label>
             <div className="relative">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={groqKey}
                 onChange={(e) => setGroqKey(e.target.value)}
-                placeholder="gsk_..."
+                placeholder="Enter Groq API Key..."
+                autoComplete="off"
                 className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-2.5 text-xs font-mono text-foreground focus:outline-none focus:border-accent"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? 'Hide API key' : 'Show API key'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             <p className="text-[11px] text-muted mt-2">
-              Used for high-speed Llama 3.3 70B curation, 4-rubric judging, and Whisper acoustic transcription.
+              Keys are stored in your local browser session only and never exposed in logs or URLs.
             </p>
           </div>
         </div>
@@ -186,7 +216,7 @@ export default function SettingsPage() {
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-card-glow space-y-6">
           <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
             <Cpu className="w-4 h-4 text-accent" />
-            <span>Hardware Acceleration &amp; Render Parameters</span>
+            <span>Encoding Parameters</span>
           </div>
 
           <div className="space-y-4">
@@ -196,7 +226,7 @@ export default function SettingsPage() {
                   NVIDIA NVENC Hardware Encoding
                 </p>
                 <p className="text-xs text-muted">
-                  Accelerates 1080x1920 encoding by up to 6.2x using dedicated GPU silicon.
+                  Uses h264_nvenc encoder when supported GPU hardware is detected.
                 </p>
               </div>
               <input
@@ -209,7 +239,7 @@ export default function SettingsPage() {
 
             <div>
               <label className="block text-xs font-mono text-muted mb-2">
-                Output Resolution
+                Output Canvas Resolution
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -221,7 +251,7 @@ export default function SettingsPage() {
                       : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
                   }`}
                 >
-                  1080 x 1920 (Standard 9:16 Full HD)
+                  1080 x 1920 (9:16 Full HD)
                 </button>
                 <button
                   type="button"
@@ -232,7 +262,7 @@ export default function SettingsPage() {
                       : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
                   }`}
                 >
-                  720 x 1280 (Fast 9:16 Draft)
+                  720 x 1280 (9:16 HD Draft)
                 </button>
               </div>
             </div>
@@ -243,7 +273,7 @@ export default function SettingsPage() {
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-card-glow space-y-4">
           <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
             <HardDrive className="w-4 h-4 text-accent" />
-            <span>Media Storage Target</span>
+            <span>Clip Storage Backend</span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -257,7 +287,7 @@ export default function SettingsPage() {
               }`}
             >
               <p className="text-xs font-bold text-foreground">Local Filesystem</p>
-              <p className="text-[11px] text-muted">temp_media / output_clips directory</p>
+              <p className="text-[11px] text-muted">temp_media &amp; output_clips folders</p>
             </button>
 
             <button
@@ -270,7 +300,7 @@ export default function SettingsPage() {
               }`}
             >
               <p className="text-xs font-bold text-foreground">Cloudflare R2 Bucket</p>
-              <p className="text-[11px] text-muted">S3-compatible edge storage</p>
+              <p className="text-[11px] text-muted">S3-compatible object storage</p>
             </button>
           </div>
         </div>

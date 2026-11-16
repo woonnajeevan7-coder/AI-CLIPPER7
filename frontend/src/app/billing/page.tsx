@@ -43,7 +43,7 @@ export default function BillingPage() {
       isPopular: true,
       features: [
         '60 viral clips / month',
-        'Priority GPU NVENC queue (6x faster)',
+        'Priority GPU NVENC queue',
         'Custom Brand Kit & Watermark removal',
         'Full 4-Pillar Virality Rubric breakdown',
         'A/B tested headline generator',
@@ -85,10 +85,10 @@ export default function BillingPage() {
           PLANS &amp; SUBSCRIPTION
         </span>
         <h1 className="text-3xl sm:text-5xl font-black text-foreground mt-3 mb-3 tracking-tight">
-          Transparent, Usage-Based Pricing
+          Usage &amp; Plans
         </h1>
         <p className="text-sm sm:text-base text-muted max-w-xl mx-auto">
-          Start for free, scale when your audience explodes. All plans include full multi-agent transcription and rendering.
+          All tiers include multi-agent transcription and rendering capabilities.
         </p>
       </div>
 
@@ -206,17 +206,17 @@ export default function BillingPage() {
             </div>
 
             <h3 className="text-xl font-extrabold text-foreground mb-2">
-              {selectedPlan} Upgrade Coming Soon!
+              {selectedPlan} Upgrade Coming Soon
             </h3>
             <p className="text-xs text-muted leading-relaxed mb-6">
-              Our automated Stripe &amp; LemonSqueezy payment gateway integration is currently in staging. You are currently grandfathered into our generous Free tier with full multi-agent feature access.
+              Billing and checkout features are currently in active development. Free tier processing remains available for your account.
             </p>
 
             <button
               onClick={() => setShowComingSoonModal(false)}
               className="w-full py-3 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition"
             >
-              Got it, continue with Free tier
+              Close
             </button>
           </div>
         </div>
