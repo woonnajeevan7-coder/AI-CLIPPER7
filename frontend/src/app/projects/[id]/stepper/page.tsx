@@ -94,7 +94,6 @@ export default function LiveStepperPage() {
   useEffect(() => {
     let sse: EventSource | null = null;
     let fallbackTimer: NodeJS.Timeout | null = null;
-    let watchdogTimer: NodeJS.Timeout | null = null;
     let isCancelled = false;
 
     async function initSSE() {
@@ -102,23 +101,13 @@ export default function LiveStepperPage() {
         const token = await getValidAuthToken();
         if (isCancelled) return;
 
-        // Watchdog: If no live worker advances progress past 0% within 3s, gracefully simulate
-        watchdogTimer = setTimeout(() => {
-          if (!isCancelled && currentProgress <= 12) {
-            console.log('No worker progress detected within 3s, activating smooth simulation.');
-            if (sse) sse.close();
-            startSimulation();
-          }
-        }, 3000);
-
         const sseUrl = `http://localhost:8000/api/v1/jobs/${jobId}/stream?token=${encodeURIComponent(token)}`;
         sse = new EventSource(sseUrl);
 
         sse.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            if (data.progress !== undefined && data.progress > 0) {
-              if (watchdogTimer) clearTimeout(watchdogTimer);
+            if (data.progress !== undefined) {
               setCurrentProgress(data.progress);
               updatePipelineProgress(data.progress, data.status ? `[${data.agent || 'SYSTEM'}] ${data.status}` : undefined);
               // Determine active stage
@@ -141,12 +130,10 @@ export default function LiveStepperPage() {
 
         sse.onerror = () => {
           // Fallback to local smooth progress simulation if SSE endpoint is not running locally
-          if (watchdogTimer) clearTimeout(watchdogTimer);
           if (sse) sse.close();
           if (!isCancelled) startSimulation();
         };
       } catch (e) {
-        if (watchdogTimer) clearTimeout(watchdogTimer);
         if (!isCancelled) startSimulation();
       }
     }
@@ -183,7 +170,6 @@ export default function LiveStepperPage() {
 
     return () => {
       isCancelled = true;
-      if (watchdogTimer) clearTimeout(watchdogTimer);
       if (sse) sse.close();
       if (fallbackTimer) clearInterval(fallbackTimer);
     };
@@ -235,11 +221,9 @@ export default function LiveStepperPage() {
             className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border relative"
           >
             <div
-              className="h-full bg-gradient-to-r from-purple-500 via-accent to-pink-500 rounded-full transition-all duration-500 ease-out relative"
+              className="h-full bg-gradient-to-r from-purple-500 via-accent to-pink-500 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${currentProgress}%` }}
-            >
-              <div className="absolute right-0 top-0 bottom-0 w-2 bg-white/70 blur-[1px] rounded-full"></div>
-            </div>
+            ></div>
           </div>
         </div>
 
@@ -249,6 +233,7 @@ export default function LiveStepperPage() {
             const Icon = st.icon;
             const isDone = currentProgress > st.targetProgress || isCompleted;
             const isCurrent = idx === currentStageIdx && !isCompleted;
+            const isPending = !isDone && !isCurrent;
 
             return (
               <div
@@ -263,38 +248,32 @@ export default function LiveStepperPage() {
                 }`}
               >
                 {/* Step Circle */}
-                <div className="relative flex items-center justify-center flex-shrink-0">
-                  {isCurrent && (
-                    <span className="animate-ping absolute inline-flex h-10 w-10 rounded-xl bg-accent/40 opacity-75"></span>
-                  )}
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center relative z-10 transition-transform duration-300 ${
-                      isDone
-                        ? 'bg-emerald-500/15 border border-emerald-500/50 text-emerald-400 shadow-sm'
-                        : isCurrent
-                        ? 'bg-accent/25 border border-accent text-accent-light shadow-accent-glow'
-                        : 'bg-surface border border-border text-muted'
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition ${isDone
+                    ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-400'
+                    : isCurrent
+                      ? 'bg-accent/20 border border-accent text-accent animate-pulse'
+                      : 'bg-surface border border-border text-muted'
                     }`}
-                  >
-                    {isDone ? (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                    ) : (
-                      <Icon className="w-5 h-5" />
-                    )}
-                  </div>
+                >
+                  {isDone ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  ) : (
+                    <Icon className="w-5 h-5" />
+                  )}
                 </div>
 
                 {/* Step Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
-                    <h3 className={`text-sm font-bold ${isCurrent ? 'text-accent-light' : 'text-foreground'}`}>
+                    <h3 className={`text-sm font-bold ${isCurrent ? 'text-accent' : 'text-foreground'}`}>
                       {st.name}
                     </h3>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-muted font-medium">
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-surface border border-border text-muted">
                       {st.agent}
                     </span>
                   </div>
-                  <p className="text-xs text-muted mt-0.5 leading-relaxed font-sans">
+                  <p className="text-xs text-muted mt-0.5 leading-relaxed">
                     {st.desc}
                   </p>
                 </div>
@@ -304,19 +283,13 @@ export default function LiveStepperPage() {
         </div>
 
         {/* Real-time Terminal Log Viewer */}
-        <div className="bg-background border border-border rounded-2xl p-4 overflow-hidden shadow-inner">
+        <div className="bg-background border border-border rounded-2xl p-4 overflow-hidden">
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-borderSubtle text-xs font-mono text-muted">
             <div className="flex items-center space-x-2">
               <Terminal className="w-4 h-4 text-accent" />
-              <span className="text-foreground font-semibold">Agent Execution Telemetry Log</span>
+              <span>Agent Execution Telemetry Log</span>
             </div>
-            <div className="flex items-center space-x-1.5 text-[10px] text-emerald-400 font-bold">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
-              </span>
-              <span>STREAM ACTIVE</span>
-            </div>
+            <span className="text-[10px] text-emerald-400 font-bold">STREAM ACTIVE</span>
           </div>
 
           <div
@@ -330,8 +303,8 @@ export default function LiveStepperPage() {
           >
             {logs.map((log, i) => (
               <div key={i} className="leading-relaxed flex items-start space-x-2">
-                <span className="text-accent/70 select-none font-bold">&gt;</span>
-                <span className={i === logs.length - 1 ? 'text-foreground font-semibold' : 'text-muted'}>
+                <span className="text-accent/60 select-none">&gt;</span>
+                <span className={i === logs.length - 1 ? 'text-foreground font-semibold' : ''}>
                   {log}
                 </span>
               </div>
@@ -341,13 +314,13 @@ export default function LiveStepperPage() {
 
         {/* Completed Navigation Action */}
         {isCompleted && (
-          <div className="mt-8 pt-6 border-t border-border flex justify-end animate-fadeIn">
+          <div className="mt-8 pt-6 border-t border-border flex justify-end">
             <button
               onClick={() => router.push(`/projects/${projectId}`)}
-              className="inline-flex items-center space-x-2.5 bg-accent hover:bg-accent-hover text-white text-sm font-bold px-6 py-3.5 rounded-xl shadow-accent-glow btn-spell group"
+              className="inline-flex items-center space-x-2 bg-accent hover:bg-accent-hover text-white text-sm font-bold px-6 py-3.5 rounded-xl shadow-accent-glow transition transform hover:-translate-y-0.5"
             >
               <span>View Generated Shorts Grid</span>
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         )}

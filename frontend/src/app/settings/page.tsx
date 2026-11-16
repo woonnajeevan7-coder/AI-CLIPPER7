@@ -5,20 +5,14 @@ import {
   Settings as SettingsIcon,
   Cpu,
   HardDrive,
-  Key,
   ShieldCheck,
   Save,
   Check,
-  Eye,
-  EyeOff,
   Activity,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
 
 export default function SettingsPage() {
-  // Never pre-fill API keys from environment or defaults
-  const [groqKey, setGroqKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
   const [useNvenc, setUseNvenc] = useState(true);
   const [storageType, setStorageType] = useState('local');
   const [resolution, setResolution] = useState('1080x1920');
@@ -56,12 +50,6 @@ export default function SettingsPage() {
       .catch(() => {
         // Fallback to local default capability flags
       });
-
-    // Check if user previously saved a custom key in their browser localStorage
-    const savedUserKey = localStorage.getItem('user_groq_api_key');
-    if (savedUserKey && typeof savedUserKey === 'string') {
-      setGroqKey(savedUserKey);
-    }
   }, []);
 
   const handleSaveSettings = (e: React.FormEvent) => {
@@ -71,12 +59,6 @@ export default function SettingsPage() {
     setSavedSuccess(false);
 
     try {
-      if (groqKey.trim()) {
-        localStorage.setItem('user_groq_api_key', groqKey.trim());
-      } else {
-        localStorage.removeItem('user_groq_api_key');
-      }
-
       localStorage.setItem('user_use_nvenc', JSON.stringify(useNvenc));
       localStorage.setItem('user_storage_type', storageType);
       localStorage.setItem('user_resolution', resolution);
@@ -184,39 +166,25 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* API Credentials */}
+        {/* Server-Managed Groq AI Credentials */}
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-card-glow space-y-4">
-          <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
-            <Key className="w-4 h-4 text-accent" />
-            <span>LLM &amp; Whisper API Configuration</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>AI Curation &amp; Whisper Inference</span>
+            </div>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
+              SERVER-MANAGED &amp; ACTIVE
+            </span>
           </div>
 
-          <div>
-            <label htmlFor="groq-api-key" className="block text-xs font-mono text-zinc-300 mb-2 font-medium">
-              Groq API Key (Optional Client Override)
-            </label>
-            <div className="relative">
-              <input
-                id="groq-api-key"
-                type={showKey ? 'text' : 'password'}
-                value={groqKey}
-                onChange={(e) => setGroqKey(e.target.value)}
-                placeholder="Enter Groq API Key..."
-                autoComplete="off"
-                aria-describedby="groq-key-hint"
-                className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-2.5 text-xs font-mono text-foreground placeholder:text-zinc-400 focus:outline-none focus:border-accent"
-              />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-foreground"
-              >
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+          <div className="p-4 rounded-xl bg-surfaceElevated border border-border space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-foreground">Groq Llama 3.3 70B &amp; Whisper Large v3</p>
+              <span className="text-xs font-mono text-accent font-semibold">Backend Env Auth</span>
             </div>
-            <p id="groq-key-hint" className="text-[11px] text-zinc-400 mt-2">
-              Keys are stored in your local browser session only and never exposed in logs or URLs.
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              All agent transcript analysis, viral candidate curation, and 4-pillar rubric judging execute securely through the FastAPI server environment. Client-side API key configuration is bypassed completely to eliminate browser token exposure.
             </p>
           </div>
         </div>

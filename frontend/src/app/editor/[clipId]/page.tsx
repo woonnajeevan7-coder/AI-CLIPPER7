@@ -207,8 +207,8 @@ export default function TranscriptEditorPage() {
       </div>
 
       {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border mb-8">
-        <div className="flex items-center space-x-3 sm:space-x-4">
+      <div className="flex items-center justify-between pb-6 border-b border-border mb-8">
+        <div className="flex items-center space-x-4">
           <button
             onClick={() => router.back()}
             aria-label="Go back to previous page"
@@ -217,7 +217,7 @@ export default function TranscriptEditorPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               Transcript Video Trimmer Studio
             </h1>
             <p className="text-xs font-mono text-muted">
@@ -226,11 +226,11 @@ export default function TranscriptEditorPage() {
           </div>
         </div>
 
-        <div className="w-full sm:w-auto flex items-center justify-end space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-3">
           <button
             onClick={resetAllWords}
             aria-label="Reset all omitted words"
-            className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition btn-spell"
+            className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Words</span>
@@ -246,31 +246,25 @@ export default function TranscriptEditorPage() {
               document.body.removeChild(a);
             }}
             aria-label={`Download trimmed clip ${clipId}`}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-bold text-foreground btn-spell shadow-sm"
+            className="flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-bold text-foreground transition"
           >
             <Download className="w-3.5 h-3.5 text-accent" />
-            <span>Download</span>
+            <span className="hidden sm:inline">Download</span>
+            <span className="sm:hidden">MP4</span>
           </button>
 
           <button
             onClick={handleSaveTrim}
             disabled={isSaving}
             aria-label="Save and re-render trim boundaries"
-            className={`flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold shadow-accent-glow btn-spell disabled:opacity-50 transition-all duration-200 ${
-              savedSuccess
-                ? 'bg-emerald-600 text-white shadow-radar-glow'
-                : 'bg-accent hover:bg-accent-hover text-white'
-            }`}
+            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition disabled:opacity-50"
           >
             {isSaving ? (
-              <span className="flex items-center space-x-2">
-                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Saving Trim...</span>
-              </span>
+              <span>Saving Trim...</span>
             ) : savedSuccess ? (
               <>
-                <Check className="w-4 h-4 text-white animate-bounce" />
-                <span className="text-white">Boundaries Applied</span>
+                <Check className="w-4 h-4 text-emerald-300" />
+                <span className="text-emerald-300">Boundaries Applied</span>
               </>
             ) : (
               <>
@@ -291,7 +285,7 @@ export default function TranscriptEditorPage() {
       {/* Two Column Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: 9:16 Preview Player (5 Cols) */}
-        <div className="lg:col-span-5 bg-surface border border-border rounded-3xl p-4 sm:p-6 flex flex-col items-center shadow-card-glow">
+        <div className="lg:col-span-5 bg-surface border border-border rounded-3xl p-6 flex flex-col items-center shadow-card-glow">
           <div className="w-full flex items-center justify-between text-xs font-mono text-muted mb-4">
             <span className="text-accent font-bold">9:16 VERTICAL CANVAS</span>
             <span>1080 x 1920</span>
@@ -454,11 +448,10 @@ export default function TranscriptEditorPage() {
                   onClick={() => toggleWordOmission(w.id)}
                   aria-pressed={!w.deleted}
                   aria-label={`${w.word}, timestamp ${w.start.toFixed(2)} to ${w.end.toFixed(2)} seconds. ${w.deleted ? 'Omitted. Press Enter to restore' : 'Active. Press Enter to omit'}`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono btn-spell flex items-center space-x-1.5 ${
-                    w.deleted
-                      ? 'bg-red-950/80 text-red-300 line-through border border-red-700/60 opacity-80'
-                      : 'bg-surfaceElevated hover:bg-surface border border-border text-foreground hover:border-accent hover:text-white shadow-sm'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono btn-spell flex items-center space-x-1.5 ${w.deleted
+                    ? 'bg-red-950/80 text-red-300 line-through border border-red-700/60 opacity-80'
+                    : 'bg-surfaceElevated hover:bg-surface border border-border text-foreground hover:border-accent hover:text-white shadow-sm'
+                    }`}
                 >
                   <span>{w.word}</span>
                   <span className="text-[10px] text-muted opacity-85">{w.start.toFixed(1)}s</span>
@@ -490,13 +483,12 @@ export default function TranscriptEditorPage() {
                   aria-checked={captionPreset === style.id}
                   aria-label={`${style.name} preset: ${style.desc}`}
                   onClick={() => setCaptionPreset(style.id)}
-                  className={`p-3 rounded-xl border text-left btn-spell ${
-                    captionPreset === style.id
-                      ? 'bg-accent/20 border-accent shadow-sm ring-1 ring-accent'
-                      : 'bg-surfaceElevated border-border hover:border-muted/80'
-                  }`}
+                  className={`p-3 rounded-xl border text-left btn-spell ${captionPreset === style.id
+                    ? 'bg-accent/20 border-accent shadow-sm ring-1 ring-accent'
+                    : 'bg-surfaceElevated border-border hover:border-muted/80'
+                    }`}
                 >
-                  <p className={`text-xs font-bold ${captionPreset === style.id ? 'text-accent-light' : 'text-foreground'}`}>
+                  <p className={`text-xs font-bold ${captionPreset === style.id ? 'text-accent' : 'text-foreground'}`}>
                     {style.name}
                   </p>
                   <p className="text-[10px] text-muted">{style.desc}</p>

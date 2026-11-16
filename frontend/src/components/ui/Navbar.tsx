@@ -3,17 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Sparkles, Video, Palette, Settings, CreditCard, PlusCircle } from 'lucide-react';
+import { Sparkles, Video, Palette, Settings, CreditCard, PlusCircle, Info } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
     { label: 'Studio', href: '/', icon: Sparkles },
-    { label: 'New Project', href: '/projects/new', icon: PlusCircle },
     { label: 'Brand Kit', href: '/brand-kit', icon: Palette },
     { label: 'Billing', href: '/billing', icon: CreditCard },
     { label: 'Settings', href: '/settings', icon: Settings },
+    { label: 'Specs & Demo', href: '/about', icon: Info },
   ];
 
   return (
@@ -69,7 +69,7 @@ export default function Navbar() {
           </div>
 
           <Link
-            href="/projects/new"
+            href="/"
             aria-label="Create new clipping project"
             className="flex items-center space-x-1.5 bg-accent hover:bg-accent-hover text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-accent-glow btn-spell focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >

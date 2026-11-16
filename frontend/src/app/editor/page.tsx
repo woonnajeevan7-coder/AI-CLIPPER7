@@ -14,7 +14,6 @@ import {
   Volume2,
   Sliders,
   Sparkles,
-  Download,
 } from 'lucide-react';
 import ErrorAlert from '@/components/ui/ErrorAlert';
 import { getValidAuthToken } from '@/lib/auth';
@@ -128,16 +127,16 @@ export default function TranscriptEditorPage() {
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border mb-8">
-        <div className="flex items-center space-x-3 sm:space-x-4">
+      <div className="flex items-center justify-between pb-6 border-b border-border mb-8">
+        <div className="flex items-center space-x-4">
           <Link
             href="/"
-            className="p-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-muted hover:text-foreground transition flex-shrink-0"
+            className="p-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-muted hover:text-foreground transition"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-lg sm:text-2xl font-bold text-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
               Transcript-Based Video Editor
             </h1>
             <p className="text-xs font-mono text-muted">
@@ -146,34 +145,19 @@ export default function TranscriptEditorPage() {
           </div>
         </div>
 
-        <div className="w-full sm:w-auto flex items-center justify-end space-x-2 sm:space-x-3">
+        <div className="flex items-center space-x-3">
           <button
             onClick={resetAllWords}
-            className="hidden sm:flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition"
+            className="hidden sm:flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-semibold text-muted hover:text-foreground transition"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Reset Words</span>
           </button>
 
           <button
-            onClick={() => {
-              const a = document.createElement('a');
-              a.href = '/sample_short.mp4';
-              a.download = `${clipId}_trimmed.mp4`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-            }}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-3.5 py-2.5 rounded-xl bg-surfaceElevated hover:bg-surface border border-border text-xs font-bold text-foreground transition"
-          >
-            <Download className="w-3.5 h-3.5 text-accent" />
-            <span>Download</span>
-          </button>
-
-          <button
             onClick={handleSaveTrim}
             disabled={isSaving}
-            className="flex-1 sm:flex-initial flex items-center justify-center space-x-2 px-4 sm:px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition disabled:opacity-50"
+            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-bold shadow-accent-glow transition disabled:opacity-50"
           >
             {isSaving ? (
               <span>Saving Trim...</span>
@@ -316,11 +300,10 @@ export default function TranscriptEditorPage() {
                   key={w.id}
                   onClick={() => toggleWord(w.id)}
                   title={`${w.start}s - ${w.end}s (Click to ${w.deleted ? 'restore' : 'omit'})`}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition flex items-center space-x-1.5 ${
-                    w.deleted
-                      ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40 opacity-60'
-                      : 'bg-surfaceElevated hover:bg-surface border border-border text-foreground hover:border-accent/60 shadow-sm'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition flex items-center space-x-1.5 ${w.deleted
+                    ? 'bg-red-950/60 text-red-400 line-through border border-red-800/40 opacity-60'
+                    : 'bg-surfaceElevated hover:bg-surface border border-border text-foreground hover:border-accent/60 shadow-sm'
+                    }`}
                 >
                   <span>{w.word}</span>
                   <span className="text-[10px] text-muted opacity-75">{w.start.toFixed(1)}s</span>
@@ -344,11 +327,10 @@ export default function TranscriptEditorPage() {
                   key={style.id}
                   type="button"
                   onClick={() => setCaptionPreset(style.id)}
-                  className={`p-3 rounded-xl border text-left transition ${
-                    captionPreset === style.id
-                      ? 'bg-accent/15 border-accent'
-                      : 'bg-surfaceElevated border-border hover:border-muted'
-                  }`}
+                  className={`p-3 rounded-xl border text-left transition ${captionPreset === style.id
+                    ? 'bg-accent/15 border-accent'
+                    : 'bg-surfaceElevated border-border hover:border-muted'
+                    }`}
                 >
                   <p className={`text-xs font-bold ${captionPreset === style.id ? 'text-accent' : 'text-foreground'}`}>
                     {style.name}

@@ -153,14 +153,8 @@ export default function ProjectResultsPage() {
     setExpandedRubric((prev) => ({ ...prev, [clipId]: !prev[clipId] }));
   };
 
-  const copyHeadline = async (text: string, clipId: string) => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-      }
-    } catch (e) {
-      // Fallback for sandboxed environments or devices without clipboard permissions
-    }
+  const copyHeadline = (text: string, clipId: string) => {
+    navigator.clipboard.writeText(text);
     setCopiedId(clipId);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -198,9 +192,9 @@ export default function ProjectResultsPage() {
           </Link>
           <button
             onClick={() => handleDownload('/sample_short.mp4', `project_${projectId}_shorts.zip`)}
-            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-bold shadow-accent-glow btn-spell"
+            className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-bold shadow-accent-glow transition"
           >
-            <Download className="w-4 h-4 transition-transform duration-200 group-hover:translate-y-0.5" />
+            <Download className="w-4 h-4" />
             <span>Download All (ZIP)</span>
           </button>
         </div>
@@ -223,8 +217,8 @@ export default function ProjectResultsPage() {
         <EmptyState
           title="No Shorts Generated Yet"
           description="This project doesn't have any rendered shorts yet. Upload a video to start the multi-agent pipeline."
-          actionHref="/projects/new"
-          actionLabel="Create New Project"
+          actionHref="/"
+          actionLabel="Open Studio Creator"
         />
       ) : (
         /* Results Cards Grid (9:16 Aspect Ratio) */
@@ -237,24 +231,24 @@ export default function ProjectResultsPage() {
             return (
               <div
                 key={clip.id}
-                className="bg-surface border border-border rounded-3xl p-5 flex flex-col card-spell group"
+                className="bg-surface border border-border rounded-3xl p-5 flex flex-col shadow-card-glow hover:border-accent/40 transition group"
               >
                 {/* 9:16 Video Mockup Container */}
-                <div className="w-full aspect-[9/16] bg-background rounded-2xl overflow-hidden relative border border-borderSubtle flex flex-col justify-between p-4 mb-5 shadow-2xl group-hover:border-accent/40 transition-all duration-300">
+                <div className="w-full aspect-[9/16] bg-background rounded-2xl overflow-hidden relative border border-borderSubtle flex flex-col justify-between p-4 mb-5 shadow-2xl">
                   {/* Top Overlays */}
                   <div className="flex items-center justify-between z-10">
-                    <span className="px-2.5 py-1 rounded-md bg-black/85 backdrop-blur-md text-xs font-mono text-white border border-white/10 shadow-sm">
+                    <span className="px-2.5 py-1 rounded-md bg-black/80 backdrop-blur-md text-xs font-mono text-white border border-white/10">
                       {clip.duration.toFixed(1)}s
                     </span>
 
-                    <span className="px-3 py-1 rounded-full bg-accent/25 backdrop-blur-md text-xs font-mono font-bold text-accent-light border border-accent/50 shadow-accent-glow-sm">
+                    <span className="px-3 py-1 rounded-full bg-accent/20 backdrop-blur-md text-xs font-mono font-bold text-accent border border-accent/40 shadow-accent-glow">
                       ★ {clip.viral_score}/100 VIRAL
                     </span>
                   </div>
 
                   {/* Play Overlay */}
                   <button
-                    onClick={() => {}}
+                    onClick={() => { }}
                     aria-label={`Play preview of ${clip.title}`}
                     className="self-center w-14 h-14 rounded-full bg-accent/90 hover:bg-accent text-white flex items-center justify-center shadow-lg transition-all duration-200 group-hover:scale-110 active:scale-95 cursor-pointer btn-spell"
                   >
@@ -262,11 +256,11 @@ export default function ProjectResultsPage() {
                   </button>
 
                   {/* Bottom Subtitle / Hook Preview */}
-                  <div className="z-10 bg-black/90 backdrop-blur-md p-3.5 rounded-xl border border-white/10 space-y-1 shadow-md">
+                  <div className="z-10 bg-black/85 backdrop-blur-md p-3 rounded-xl border border-white/10 space-y-1">
                     <p className="text-[11px] font-mono text-yellow-400 font-bold uppercase tracking-wider">
                       HOOK ONSET (0.0s - 3.0s)
                     </p>
-                    <p className="text-xs text-foreground font-sans line-clamp-2 italic leading-relaxed">
+                    <p className="text-xs text-foreground font-sans line-clamp-2 italic">
                       &quot;{clip.hook}&quot;
                     </p>
                   </div>
@@ -274,7 +268,7 @@ export default function ProjectResultsPage() {
 
                 {/* Card Header & Title */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-bold text-foreground mb-1 leading-snug group-hover:text-accent-light transition-colors">
+                  <h3 className="text-lg font-bold text-foreground mb-1 leading-snug">
                     {clip.title}
                   </h3>
                   <div className="flex items-center space-x-2 text-xs font-mono text-muted">
@@ -285,7 +279,7 @@ export default function ProjectResultsPage() {
                 </div>
 
                 {/* Headline Variants Switcher */}
-                <div className="bg-surfaceElevated border border-border rounded-xl p-3 mb-4 shadow-sm">
+                <div className="bg-surfaceElevated border border-border rounded-xl p-3 mb-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-mono uppercase text-muted font-semibold tracking-wider">
                       A/B Tested Headlines
@@ -293,12 +287,12 @@ export default function ProjectResultsPage() {
                     <button
                       onClick={() => copyHeadline(selectedHeadline, clip.id)}
                       aria-label={`Copy headline variant: ${selectedHeadline}`}
-                      className="text-xs text-accent hover:text-accent-light flex items-center space-x-1 btn-spell"
+                      className="text-xs text-accent hover:text-accent-hover flex items-center space-x-1"
                     >
                       {copiedId === clip.id ? (
                         <>
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
-                          <span className="text-emerald-400 font-mono font-bold">Copied!</span>
+                          <span className="text-emerald-400 font-mono">Copied</span>
                         </>
                       ) : (
                         <>
@@ -320,11 +314,10 @@ export default function ProjectResultsPage() {
                         onClick={() =>
                           setActiveVariantTab((prev) => ({ ...prev, [clip.id]: tab }))
                         }
-                        className={`flex-1 py-1 text-[11px] font-medium capitalize rounded-md btn-spell ${
-                          activeTab === tab
-                            ? 'bg-accent/25 text-white font-bold border border-accent/40 shadow-sm'
-                            : 'text-muted hover:text-foreground'
-                        }`}
+                        className={`flex-1 py-1 text-[11px] font-medium capitalize rounded-md transition ${activeTab === tab
+                          ? 'bg-accent/20 text-accent font-semibold border border-accent/30'
+                          : 'text-muted hover:text-foreground'
+                          }`}
                       >
                         {tab.replace('_', ' ')}
                       </button>
@@ -343,13 +336,17 @@ export default function ProjectResultsPage() {
                     aria-expanded={isRubricOpen}
                     aria-controls={`rubric-panel-${clip.id}`}
                     aria-label={`Toggle 4-pillar virality rubric breakdown for ${clip.title}`}
-                    className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold text-muted hover:text-foreground transition group/rubric btn-spell"
+                    className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold text-muted hover:text-foreground transition"
                   >
                     <div className="flex items-center space-x-1.5">
-                      <Award className="w-4 h-4 text-accent transition-transform duration-200 group-hover/rubric:scale-110" />
-                      <span className="text-foreground">4-Pillar Virality Rubric</span>
+                      <Award className="w-4 h-4 text-accent" />
+                      <span>4-Pillar Virality Rubric</span>
                     </div>
-                    <ChevronDown className={`w-4 h-4 text-muted transition-transform duration-300 ${isRubricOpen ? 'rotate-180 text-accent' : ''}`} />
+                    {isRubricOpen ? (
+                      <ChevronUp className="w-4 h-4 text-muted" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-muted" />
+                    )}
                   </button>
 
                   {isRubricOpen && (
@@ -368,7 +365,7 @@ export default function ProjectResultsPage() {
                           className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
                         >
                           <div
-                            className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
+                            className="h-full bg-accent rounded-full"
                             style={{ width: `${(clip.rubric.hook_strength / 25) * 100}%` }}
                           ></div>
                         </div>
@@ -388,7 +385,7 @@ export default function ProjectResultsPage() {
                           className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
                         >
                           <div
-                            className="h-full bg-emerald-400 rounded-full transition-all duration-500 ease-out"
+                            className="h-full bg-emerald-400 rounded-full"
                             style={{ width: `${(clip.rubric.self_contained / 25) * 100}%` }}
                           ></div>
                         </div>
@@ -408,7 +405,7 @@ export default function ProjectResultsPage() {
                           className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
                         >
                           <div
-                            className="h-full bg-amber-400 rounded-full transition-all duration-500 ease-out"
+                            className="h-full bg-amber-400 rounded-full"
                             style={{ width: `${(clip.rubric.payoff / 25) * 100}%` }}
                           ></div>
                         </div>
@@ -428,14 +425,14 @@ export default function ProjectResultsPage() {
                           className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
                         >
                           <div
-                            className="h-full bg-pink-400 rounded-full transition-all duration-500 ease-out"
+                            className="h-full bg-pink-400 rounded-full"
                             style={{ width: `${(clip.rubric.zero_context_needed / 25) * 100}%` }}
                           ></div>
                         </div>
                       </div>
 
                       <div className="pt-2 border-t border-borderSubtle">
-                        <p className="text-[11px] text-muted italic leading-relaxed">
+                        <p className="text-[11px] text-muted italic">
                           &quot;{clip.rubric.critique}&quot;
                         </p>
                       </div>
@@ -448,7 +445,7 @@ export default function ProjectResultsPage() {
                   <Link
                     href={`/editor/${clip.id}`}
                     aria-label={`Edit ${clip.title} in Studio`}
-                    className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-surfaceElevated hover:bg-surface border border-border hover:border-accent text-xs font-bold text-foreground btn-spell shadow-sm"
+                    className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-surfaceElevated hover:bg-surface border border-border hover:border-accent text-xs font-bold text-foreground transition"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-accent" />
                     <span>Edit in Studio</span>
@@ -457,7 +454,7 @@ export default function ProjectResultsPage() {
                   <button
                     onClick={() => handleDownload(clip.video_url || '/sample_short.mp4', `${clip.id}.mp4`)}
                     aria-label={`Download ${clip.title} MP4`}
-                    className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-accent hover:bg-accent-hover text-xs font-bold text-white shadow-accent-glow btn-spell"
+                    className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-accent hover:bg-accent-hover text-xs font-bold text-white shadow-accent-glow transition"
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span>Download MP4</span>
