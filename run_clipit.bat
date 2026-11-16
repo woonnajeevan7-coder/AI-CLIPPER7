@@ -32,7 +32,7 @@ echo Opening your default browser...
 echo Press Ctrl+C in this terminal window to stop the server.
 echo.
 
-python -m streamlit run app.py --server.headless false --browser.gatherUsageStats false
+python -m streamlit run app.py --server.address 127.0.0.1 --server.headless false --browser.gatherUsageStats false
 
 if %ERRORLEVEL% neq 0 (
     echo.

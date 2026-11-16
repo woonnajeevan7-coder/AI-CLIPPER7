@@ -11,6 +11,7 @@ import sys
 import re
 from pathlib import Path
 import time
+import html
 from typing import List, Dict, Any
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
@@ -20,6 +21,12 @@ from agents import ClipperOrchestratorAgent, VideoEditorAgent
 from schema import WordTimestamp
 from captions import generate_karaoke_ass
 from backend.security import SSRFGuard, SSRFValidationError
+
+
+def safe_html(text: Any) -> str:
+    """Escapes strings for safe inclusion in unsafe_allow_html markup."""
+    return html.escape(str(text) if text is not None else "")
+
 
 # Page configuration
 st.set_page_config(
@@ -558,8 +565,6 @@ st.markdown('<p class="sub-title">Enterprise Short-Form Repurposing Engine · Fa
 # 3D WebGL Neural Engine Hero Showcase
 render_3d_hero_experience()
 
-DEFAULT_GROQ_KEY = os.getenv("GROQ_API_KEY", "")
-
 # Sidebar Configuration
 with st.sidebar:
     st.header("⚡ Engine & Brain")
@@ -572,13 +577,35 @@ with st.sidebar:
     
     api_key = ""
     if "Groq" in provider:
-        api_key = st.text_input("Groq API Key", type="password", value=DEFAULT_GROQ_KEY)
+        env_groq = os.getenv("GROQ_API_KEY", "")
+        key_input = st.text_input(
+            "Groq API Key",
+            type="password",
+            value="",
+            placeholder="Leave blank to use GROQ_API_KEY from environment" if env_groq else "Enter gsk_... key",
+            help="For security, credentials are not pre-filled into the browser input. Server environment key is used if left blank."
+        )
+        api_key = key_input.strip() or env_groq
         engine_code = "groq"
     elif "Gemini" in provider:
-        api_key = st.text_input("Gemini API Key", type="password", value=os.getenv("GEMINI_API_KEY", ""))
+        env_gemini = os.getenv("GEMINI_API_KEY", "")
+        key_input = st.text_input(
+            "Gemini API Key",
+            type="password",
+            value="",
+            placeholder="Leave blank to use GEMINI_API_KEY from environment" if env_gemini else "Enter Gemini key"
+        )
+        api_key = key_input.strip() or env_gemini
         engine_code = "gemini"
     elif "OpenAI" in provider:
-        api_key = st.text_input("OpenAI API Key", type="password", value=os.getenv("OPENAI_API_KEY", ""))
+        env_openai = os.getenv("OPENAI_API_KEY", "")
+        key_input = st.text_input(
+            "OpenAI API Key",
+            type="password",
+            value="",
+            placeholder="Leave blank to use OPENAI_API_KEY from environment" if env_openai else "Enter OpenAI key"
+        )
+        api_key = key_input.strip() or env_openai
         engine_code = "openai"
     else:
         st.info("Running with internal heuristic analysis. No cloud key needed.")
@@ -716,8 +743,8 @@ with tab_studio:
                 )
 
                 for event in generator:
-                    agent = event.get("agent", "Agent")
-                    status_text = event.get("status", "")
+                    agent = safe_html(event.get("agent", "Agent"))
+                    status_text = safe_html(event.get("status", ""))
                     progress = event.get("progress", 0)
                     
                     progress_bar.progress(progress)
@@ -755,8 +782,16 @@ with tab_studio:
             c_path = Path(item["path"])
             
             with cols[i % num_cols]:
-                st.markdown(f"### {c_data.get('title', 'Clip')}")
-                st.markdown(f"<span class='score-badge'>🔥 Viral Score: {c_data.get('viral_score', 92)}/100</span>", unsafe_allow_html=True)
+                clip_title = safe_html(c_data.get('title', 'Clip'))
+                clip_headline = safe_html(c_data.get('headline', ''))
+                viral_score = c_data.get('viral_score', 92)
+                st.markdown(
+                    f"<div class='clip-header'><h3 style='margin:0 0 6px 0; color:#f8fafc;'>{clip_title}</h3>"
+                    f"<span class='score-badge'>🔥 Viral Score: {viral_score}/100</span> "
+                    f"<span class='headline-badge' style='background:#1e1b4b; color:#a5b4fc; padding:2px 8px; border-radius:4px; font-size:0.85rem;'>{clip_headline}</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
                 st.write(f"**Hook Banner:** `{c_data.get('headline', '')}`")
                 
                 # Show headline variants if present
@@ -816,6 +851,15 @@ with tab_editor:
             st.caption(f"File: `{c_path.name}` · Score: {c_data.get('viral_score')}/100")
 
         with col_controls:
+            escaped_edit_title = safe_html(c_data.get('title', 'Clip'))
+            escaped_edit_headline = safe_html(c_data.get('headline', ''))
+            st.markdown(
+                f"<div style='margin-bottom:8px;'>"
+                f"<span class='agent-badge' style='background-color:#e0e7ff !important; color:#1e1b4b !important; font-weight:800 !important; padding:4px 12px !important; border-radius:6px !important;'>[{escaped_edit_title}]</span> "
+                f"<span style='color:#cbd5e1; font-size:0.95rem; font-weight:600;'>{escaped_edit_headline}</span>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
             st.markdown("#### 📝 Edit Headline Banner")
             new_headline = st.text_input("Top Headline Banner", value=c_data.get("headline", ""))
 
@@ -859,10 +903,11 @@ with tab_editor:
             # Live preview of transcript text
             pill_html = []
             for w in word_options:
+                w_escaped = safe_html(w)
                 if w in excluded_words:
-                    pill_html.append(f"<span class='word-pill-deleted'>{w}</span>")
+                    pill_html.append(f"<span class='word-pill-deleted'>{w_escaped}</span>")
                 else:
-                    pill_html.append(f"<span class='word-pill'>{w}</span>")
+                    pill_html.append(f"<span class='word-pill'>{w_escaped}</span>")
             st.markdown(" ".join(pill_html), unsafe_allow_html=True)
 
             if st.button("⚡ Re-Render Short with New Settings", type="primary", use_container_width=True):
@@ -967,16 +1012,21 @@ with tab_brand:
 
         st.markdown("#### 📱 Safe-Area Mobile Layout Preview")
         font_clean = font_family.split("-")[0]
+        escaped_watermark = safe_html(watermark_text or "@brand")
+        escaped_preview_headline = safe_html(
+            st.session_state.rendered_clips[0]["data"].get("headline", "VIRAL HEADLINE BANNER")
+            if st.session_state.rendered_clips else "VIRAL HEADLINE BANNER"
+        )
         st.markdown(f"""
         <div role="region" aria-label="Mobile 9:16 safe-area layout preview" style="width: 240px; height: 426px; background-color: #020617; border: 2px dashed {primary_color}; border-radius: 16px; margin: 0 auto; position: relative; padding: 12px; text-align: center; font-family: '{font_clean}', sans-serif;">
             <div style="background-color: rgba(0,0,0,0.7); color: white; padding: 6px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-top: 20px; border-left: 3px solid {primary_color};">
-                VIRAL HEADLINE BANNER
+                {escaped_preview_headline}
             </div>
             <div style="position: absolute; bottom: 65px; left: 10px; right: 10px; font-weight: 800; font-size: 13px; color: {primary_color}; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
                 KARAOKE ACTIVE WORD
             </div>
             <div style="position: absolute; bottom: 20px; left: 0; right: 0; font-size: 10px; color: #94a3b8; font-weight: 600;">
-                {watermark_text or '@brand'}
+                {escaped_watermark}
             </div>
         </div>
         """, unsafe_allow_html=True)
