@@ -133,15 +133,32 @@ def test_groq_model_verification_against_live_models():
     mock_client.models.list.return_value.data = [
         MagicMock(id="whisper-large-v3"),
         MagicMock(id="qwen/qwen3.8-27b"),
-        MagicMock(id="openai/gpt-oss-120b")
+        MagicMock(id="llama-3.3-70b-versatile")
     ]
     verified = curator._get_verified_model(mock_client)
-    assert verified == "openai/gpt-oss-120b"
+    assert verified == "llama-3.3-70b-versatile"
 
-    # If gpt-oss-120b not in live list, fallback to qwen
+    # If llama-3.3-70b not in live list, fallback to next preferred (e.g. qwen)
     curator._verified_model = None
     mock_client.models.list.return_value.data = [
         MagicMock(id="qwen/qwen3.8-27b")
     ]
     verified_fallback = curator._get_verified_model(mock_client)
     assert verified_fallback == "qwen/qwen3.8-27b"
+
+
+def test_only_groq_ai_provider_enforced():
+    """Verify that any non-Groq AI provider is rejected with ValueError."""
+    import pytest
+    for bad_provider in ["gemini", "openai", "anthropic", "cohere"]:
+        with pytest.raises(ValueError, match="Only Groq AI is supported"):
+            ViralCuratorAgent(api_key="test", provider=bad_provider)
+
+        with pytest.raises(ValueError, match="Only Groq AI is supported"):
+            JudgeAgent(api_key="test", provider=bad_provider)
+
+    # Valid providers (Groq and offline heuristic modes) must succeed
+    assert ViralCuratorAgent(api_key="test", provider="groq").provider == "groq"
+    assert ViralCuratorAgent(api_key=None, provider="heuristic").provider == "heuristic"
+    assert JudgeAgent(api_key="test", provider="groq").provider == "groq"
+    assert JudgeAgent(api_key=None, provider="heuristic").provider == "heuristic"

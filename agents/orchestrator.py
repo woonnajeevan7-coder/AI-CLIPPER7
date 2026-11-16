@@ -31,6 +31,8 @@ class ClipperOrchestratorAgent:
         api_key: Optional[str] = None,
         provider: str = "groq"
     ):
+        if provider not in ("groq", "heuristic", "offline"):
+            raise ValueError(f"Unsupported provider '{provider}'. Only Groq AI is supported for clip generation.")
         self.project_root = project_root
         self.ffmpeg_bin = get_ffmpeg_bin(project_root)
         self.fonts_dir = project_root / "fonts"

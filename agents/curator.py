@@ -18,6 +18,8 @@ class ViralCuratorAgent:
     """Agent responsible for Pass-1 Candidate Generation and multimodal transcript analysis."""
 
     def __init__(self, api_key: Optional[str] = None, provider: str = "groq"):
+        if provider not in ("groq", "heuristic", "offline"):
+            raise ValueError(f"Unsupported provider '{provider}'. Only Groq AI is supported for clip curation.")
         self.api_key = api_key
         self.provider = provider
         self.judge = JudgeAgent(api_key=api_key, provider=provider)
@@ -30,13 +32,11 @@ class ViralCuratorAgent:
         try:
             live_models = client.models.list().data
             live_ids = {m.id for m in live_models}
-            # Priority preference list
+            # Priority preference list for Groq LPU models
             preferred = [
-                "openai/gpt-oss-120b",
-                "openai/gpt-oss-20b",
-                "qwen/qwen3.8-27b",
                 "llama-3.3-70b-versatile",
-                "llama-3.1-8b-instant"
+                "llama-3.1-8b-instant",
+                "qwen/qwen3.8-27b"
             ]
             for candidate in preferred:
                 if candidate in live_ids:
@@ -48,7 +48,7 @@ class ViralCuratorAgent:
                     return m.id
         except Exception as e:
             print(f"[ViralCuratorAgent] Model verification notice: {e}")
-        self._verified_model = "openai/gpt-oss-120b"
+        self._verified_model = "llama-3.3-70b-versatile"
         return self._verified_model
 
     def _chunk_transcript(
@@ -165,29 +165,8 @@ Timestamped Video Transcript (Segment {chunk_idx + 1}/{len(chunks)}):
                             response_format={"type": "json_object"}
                         )
                         raw_text = completion.choices[0].message.content or ""
-                    elif self.provider == "gemini":
-                        from google import genai
-                        client = genai.Client(api_key=self.api_key)
-                        resp = client.models.generate_content(
-                            model="gemini-2.5-flash",
-                            contents=prompt,
-                        )
-                        raw_text = resp.text or ""
-                    elif self.provider == "openai":
-                        import openai
-                        client = openai.OpenAI(api_key=self.api_key)
-                        completion = client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {"role": "system", "content": "You are a viral video scout."},
-                                {"role": "user", "content": prompt}
-                            ],
-                            max_tokens=4096,
-                            response_format={"type": "json_object"}
-                        )
-                        raw_text = completion.choices[0].message.content or ""
                     else:
-                        raise ValueError(f"Unsupported provider: {self.provider}")
+                        raise ValueError(f"Only Groq AI is supported for clip generation (got: '{self.provider}')")
 
                     data = self._clean_and_parse_json(raw_text)
                     if data and "candidates" in data:

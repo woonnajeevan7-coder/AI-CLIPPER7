@@ -107,8 +107,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="AI Clipper Agent CLI")
     parser.add_argument("url", nargs="?", help="YouTube video URL or path to MP4")
     parser.add_argument("--clips", type=int, default=3, help="Number of clips to generate")
-    parser.add_argument("--key", type=str, default=os.getenv("GROQ_API_KEY"), help="Groq, Gemini, or OpenAI API key")
-    parser.add_argument("--provider", type=str, default="groq", choices=["groq", "gemini", "openai", "heuristic"])
+    parser.add_argument("--key", type=str, default=os.getenv("GROQ_API_KEY"), help="Groq API key")
+    parser.add_argument("--provider", type=str, default="groq", choices=["groq", "heuristic"])
     args = parser.parse_args()
 
     if not args.url:

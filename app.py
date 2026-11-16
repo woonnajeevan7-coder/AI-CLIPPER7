@@ -572,7 +572,7 @@ with st.sidebar:
     
     provider = st.selectbox(
         "Agent LLM Brain",
-        options=["Groq LPU (Ultra-Fast · Recommended)", "Google Gemini", "OpenAI", "Offline Mode (Heuristic)"],
+        options=["Groq LPU (Ultra-Fast · Recommended)", "Offline Mode (Heuristic)"],
         index=0
     )
     
@@ -588,26 +588,6 @@ with st.sidebar:
         )
         api_key = key_input.strip() or env_groq
         engine_code = "groq"
-    elif "Gemini" in provider:
-        env_gemini = os.getenv("GEMINI_API_KEY", "")
-        key_input = st.text_input(
-            "Gemini API Key",
-            type="password",
-            value="",
-            placeholder="Leave blank to use GEMINI_API_KEY from environment" if env_gemini else "Enter Gemini key"
-        )
-        api_key = key_input.strip() or env_gemini
-        engine_code = "gemini"
-    elif "OpenAI" in provider:
-        env_openai = os.getenv("OPENAI_API_KEY", "")
-        key_input = st.text_input(
-            "OpenAI API Key",
-            type="password",
-            value="",
-            placeholder="Leave blank to use OPENAI_API_KEY from environment" if env_openai else "Enter OpenAI key"
-        )
-        api_key = key_input.strip() or env_openai
-        engine_code = "openai"
     else:
         st.info("Running with internal heuristic analysis. No cloud key needed.")
         engine_code = "heuristic"

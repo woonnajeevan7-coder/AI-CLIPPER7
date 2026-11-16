@@ -17,6 +17,8 @@ class JudgeAgent:
     """Pass-2 Judge Agent auditing viral candidate clips against strict retention rubrics."""
 
     def __init__(self, api_key: Optional[str] = None, provider: str = "groq", min_score_threshold: int = 75):
+        if provider not in ("groq", "heuristic", "offline"):
+            raise ValueError(f"Unsupported provider '{provider}'. Only Groq AI is supported for clip evaluation.")
         self.api_key = api_key
         self.provider = provider
         self.min_score_threshold = min_score_threshold
@@ -29,12 +31,11 @@ class JudgeAgent:
         try:
             live_models = client.models.list().data
             live_ids = {m.id for m in live_models}
+            # Priority preference list for Groq LPU models
             preferred = [
-                "openai/gpt-oss-120b",
-                "openai/gpt-oss-20b",
-                "qwen/qwen3.8-27b",
                 "llama-3.3-70b-versatile",
-                "llama-3.1-8b-instant"
+                "llama-3.1-8b-instant",
+                "qwen/qwen3.8-27b"
             ]
             for candidate in preferred:
                 if candidate in live_ids:
@@ -46,7 +47,7 @@ class JudgeAgent:
                     return m.id
         except Exception as e:
             print(f"[JudgeAgent] Model verification notice: {e}")
-        self._verified_model = "openai/gpt-oss-120b"
+        self._verified_model = "llama-3.3-70b-versatile"
         return self._verified_model
 
     def _extract_candidate_transcript(
