@@ -16,37 +16,43 @@ from schema import CandidateClip, RubricScore, HeadlineVariants, ClipMetadata, A
 class JudgeAgent:
     """Pass-2 Judge Agent auditing viral candidate clips against strict retention rubrics."""
 
-    def __init__(self, api_key: Optional[str] = None, provider: str = "groq"):
+    def __init__(self, api_key: Optional[str] = None, provider: str = "groq", min_score_threshold: int = 75):
         self.api_key = api_key
         self.provider = provider
+        self.min_score_threshold = min_score_threshold
 
     def evaluate_and_rank(
         self,
         candidates: List[CandidateClip],
         transcript_context: str,
         audio_signals: Optional[AudioSignals] = None,
-        top_n: int = 3
+        top_n: int = 3,
+        min_score: Optional[int] = None
     ) -> List[ClipMetadata]:
         """
         Re-ranks pass-1 candidates, computes rubric scores, generates 3 headline variants,
+        enforces explicit score gating (total_score >= 75 by default),
         and returns validated ClipMetadata objects.
         """
         if not candidates:
             return []
+
+        threshold = min_score if min_score is not None else self.min_score_threshold
 
         # If LLM key is available, run deep LLM judge evaluation
         if self.api_key and self.provider == "groq":
             try:
                 evaluated = self._llm_evaluate_groq(candidates, transcript_context, audio_signals)
                 if evaluated:
-                    # Sort by total rubric score descending
-                    evaluated.sort(key=lambda c: c.viral_score, reverse=True)
-                    return evaluated[:top_n]
+                    # Apply explicit score gating
+                    gated = [c for c in evaluated if (c.rubric.total_score if c.rubric else c.viral_score) >= threshold]
+                    gated.sort(key=lambda c: c.viral_score, reverse=True)
+                    return gated[:top_n]
             except Exception as e:
                 print(f"[JudgeAgent] LLM evaluation error: {e}, using heuristic judge...")
 
         # Fallback to heuristic evaluation if offline or on error
-        return self._heuristic_evaluate(candidates, audio_signals, top_n)
+        return self._heuristic_evaluate(candidates, audio_signals, top_n, min_score=threshold)
 
     def _llm_evaluate_groq(
         self,
@@ -194,11 +200,13 @@ Respond ONLY with a valid JSON array of objects with this schema:
         self,
         candidates: List[CandidateClip],
         audio_signals: Optional[AudioSignals],
-        top_n: int
+        top_n: int,
+        min_score: Optional[int] = None
     ) -> List[ClipMetadata]:
-        """Deterministic rubric scoring and headline generation for offline/fallback use."""
+        """Deterministic rubric scoring, score gating, and headline generation for offline/fallback use."""
         results: List[ClipMetadata] = []
         energy_times = audio_signals.energy_peaks if audio_signals else []
+        threshold = min_score if min_score is not None else self.min_score_threshold
 
         for c in candidates:
             # Rubric scoring heuristics
@@ -243,7 +251,8 @@ Respond ONLY with a valid JSON array of objects with this schema:
             ))
 
         results.sort(key=lambda x: x.viral_score, reverse=True)
-        return results[:top_n]
+        gated = [c for c in results if c.viral_score >= threshold]
+        return gated[:top_n]
 
     @staticmethod
     def _clean_and_parse_json(text: str) -> Optional[Any]:

@@ -59,6 +59,31 @@ def test_split_screen_plan():
     assert plan.face_count == 2
     assert "vstack" in plan.filter_string
     assert "scale=1080:960" in plan.filter_string
+    assert "drawbox=y=958:h=4:color=black@0.5:t=fill" in plan.filter_string
+
+
+def test_dual_mode_smoothing_stationary_and_walking():
+    agent = SmartFramingAgent()
+    # Stationary speaker: minor jitter < 0.15 * 1280 (192px)
+    stationary_records = [
+        {"time_offset": 0.0, "faces": [{"cx": 640, "cy": 360, "w": 100, "h": 100}]},
+        {"time_offset": 0.5, "faces": [{"cx": 645, "cy": 360, "w": 100, "h": 100}]},
+        {"time_offset": 1.0, "faces": [{"cx": 638, "cy": 360, "w": 100, "h": 100}]},
+    ]
+    stat_plan = agent._build_single_face_plan(stationary_records, width=1280, height=720, scene_cuts=[])
+    expected_crop_w = int(720 * 9 / 16)
+    expected_crop_x = int(640 - expected_crop_w / 2.0)
+    assert stat_plan.crop_x == expected_crop_x
+
+    # Walking speaker: movement >= 0.15 * 1280 (192px)
+    walking_records = [
+        {"time_offset": 0.0, "faces": [{"cx": 300, "cy": 360, "w": 100, "h": 100}]},
+        {"time_offset": 0.5, "faces": [{"cx": 550, "cy": 360, "w": 100, "h": 100}]},
+        {"time_offset": 1.0, "faces": [{"cx": 800, "cy": 360, "w": 100, "h": 100}]},
+    ]
+    walk_plan = agent._build_single_face_plan(walking_records, width=1280, height=720, scene_cuts=[])
+    assert walk_plan.layout == "single_face"
+    assert walk_plan.crop_x is not None
 
 
 def test_smart_framing_ffmpeg_render_pipeline(tmp_path: Path):

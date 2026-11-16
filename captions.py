@@ -157,7 +157,7 @@ def generate_karaoke_ass(
                 display_word = f"{w.emoji} {w.word}" if w.emoji else w.word
                 if idx == active_idx:
                     # Highlight active word with highlight or keyword color
-                    active_col = "&H0022FF&" if w.is_keyword else style['highlight_color']
+                    active_col = "&H0022FF" if w.is_keyword else style['highlight_color']
                     line_parts.append(f"{{\\c{active_col}&}}{display_word}{{\\c{style['primary_color']}&}}")
                 else:
                     line_parts.append(display_word)
