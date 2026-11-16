@@ -180,24 +180,32 @@ export default function Hero3DCanvas() {
     // Animation Loop
     let animId: number;
     let clock = new THREE.Clock();
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      const elapsedTime = clock.getElapsedTime();
+      const elapsedTime = prefersReducedMotion ? 1.0 : clock.getElapsedTime();
 
-      // Smooth interpolation for mouse tilt
-      mainGroup.rotation.y += (targetRotY - mainGroup.rotation.y) * 0.08;
-      mainGroup.rotation.x += (targetRotX - mainGroup.rotation.x) * 0.08;
+      if (!prefersReducedMotion) {
+        // Smooth interpolation for mouse tilt
+        mainGroup.rotation.y += (targetRotY - mainGroup.rotation.y) * 0.08;
+        mainGroup.rotation.x += (targetRotX - mainGroup.rotation.x) * 0.08;
 
-      // Subtle float oscillation
-      phoneMesh.position.y = Math.sin(elapsedTime * 1.8) * 0.08;
-      wireframe.position.y = phoneMesh.position.y;
+        // Subtle float oscillation
+        phoneMesh.position.y = Math.sin(elapsedTime * 1.8) * 0.08;
+        wireframe.position.y = phoneMesh.position.y;
 
-      // Rotate particle cloud & rings
-      particles.rotation.y = elapsedTime * 0.08;
-      particles.rotation.x = elapsedTime * 0.04;
-      ring1.rotation.z = elapsedTime * 0.15;
-      ring2.rotation.z = -elapsedTime * 0.12;
+        // Rotate particle cloud & rings
+        particles.rotation.y = elapsedTime * 0.08;
+        particles.rotation.x = elapsedTime * 0.04;
+        ring1.rotation.z = elapsedTime * 0.15;
+        ring2.rotation.z = -elapsedTime * 0.12;
+      } else {
+        mainGroup.rotation.y = 0.15;
+        mainGroup.rotation.x = 0.05;
+        phoneMesh.position.y = 0;
+        wireframe.position.y = 0;
+      }
 
       // Update Phone Screen Canvas Texture
       if (ctx) {
@@ -211,7 +219,7 @@ export default function Hero3DCanvas() {
         ctx.fillText('⚡ AI CLIPPER 3D', 256, 90);
 
         // Simulated Face Tracker Box
-        const boxPulse = Math.sin(elapsedTime * 3) * 6;
+        const boxPulse = prefersReducedMotion ? 0 : Math.sin(elapsedTime * 3) * 6;
         const boxX = 146 - boxPulse / 2;
         const boxY = 230 - boxPulse / 2;
         const boxW = 220 + boxPulse;
@@ -238,7 +246,7 @@ export default function Hero3DCanvas() {
         const barWidth = 16;
         const startX = 60;
         for (let b = 0; b < barCount; b++) {
-          const h = 25 + Math.abs(Math.sin(elapsedTime * 4 + b * 0.5)) * 90;
+          const h = prefersReducedMotion ? 40 : 25 + Math.abs(Math.sin(elapsedTime * 4 + b * 0.5)) * 90;
           ctx.fillStyle = b % 2 === 0 ? '#ec4899' : '#8b5cf6';
           ctx.fillRect(startX + b * 22, 790 - h, barWidth, h);
         }
@@ -279,6 +287,8 @@ export default function Hero3DCanvas() {
   return (
     <div
       ref={containerRef}
+      role="img"
+      aria-label="Interactive 3D canvas showcasing 9:16 vertical video with speaker face-tracking and karaoke subtitles"
       className="w-full h-80 relative rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing border border-purple-500/20 bg-gradient-to-b from-purple-950/20 via-slate-900/40 to-slate-950/80 shadow-2xl backdrop-blur-md"
       title="Interactive 3D Hologram: Drag to rotate, move mouse to tilt"
     >

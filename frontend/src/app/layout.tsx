@@ -28,8 +28,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-background text-foreground font-sans antialiased selection:bg-accent selection:text-white min-h-screen flex flex-col">
+        {/* WCAG 2.4.1: Bypass Blocks / Skip Navigation */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2.5 focus:bg-accent focus:text-white focus:font-bold focus:rounded-xl focus:shadow-accent-glow focus:outline-none focus:ring-2 focus:ring-white"
+        >
+          Skip to main content
+        </a>
         <Navbar />
-        <main className="flex-1 flex flex-col">
+        <main id="main-content" tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
           {children}
         </main>
       </body>

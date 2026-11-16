@@ -231,9 +231,13 @@ export default function LandingPage() {
                     </span>
                   </div>
 
-                  <div className="self-center w-14 h-14 rounded-full bg-accent/90 hover:bg-accent text-white flex items-center justify-center shadow-lg transition-all duration-200 group-hover:scale-110 active:scale-95 cursor-pointer">
+                  <button
+                    type="button"
+                    aria-label={`Play preview for ${clip.title}`}
+                    className="self-center w-14 h-14 rounded-full bg-accent/90 hover:bg-accent text-white flex items-center justify-center shadow-lg transition-all duration-200 group-hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                  >
                     <Play className="w-6 h-6 fill-white ml-0.5" />
-                  </div>
+                  </button>
 
                   <div className="z-10 bg-black/90 backdrop-blur-md p-3.5 rounded-xl border border-white/10 shadow-md">
                     <p className="text-xs font-bold text-yellow-400 font-mono tracking-wide uppercase mb-1">

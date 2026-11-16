@@ -112,11 +112,18 @@ export default function BillingPage() {
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border mb-3">
+        <div
+          role="progressbar"
+          aria-valuenow={2}
+          aria-valuemin={0}
+          aria-valuemax={5}
+          aria-label="Monthly clip allowance usage"
+          className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border mb-3"
+        >
           <div className="h-full bg-accent rounded-full" style={{ width: '40%' }}></div>
         </div>
 
-        <div className="flex justify-between items-center text-xs font-mono text-muted">
+        <div className="flex justify-between items-center text-xs font-mono text-zinc-400">
           <span>3 clips remaining</span>
           <span>Resets on the 1st of next month</span>
         </div>
@@ -192,11 +199,17 @@ export default function BillingPage() {
 
       {/* "Coming Soon" Modal */}
       {showComingSoonModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="upgrade-modal-title"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        >
           <div className="bg-surface border border-border rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative text-center">
             <button
               onClick={() => setShowComingSoonModal(false)}
-              className="absolute top-4 right-4 p-2 rounded-xl text-muted hover:text-foreground hover:bg-surfaceElevated transition"
+              aria-label="Close upgrade dialog"
+              className="absolute top-4 right-4 p-2 rounded-xl text-zinc-400 hover:text-foreground hover:bg-surfaceElevated transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -205,10 +218,10 @@ export default function BillingPage() {
               <Sparkles className="w-7 h-7" />
             </div>
 
-            <h3 className="text-xl font-extrabold text-foreground mb-2">
+            <h3 id="upgrade-modal-title" className="text-xl font-extrabold text-foreground mb-2">
               {selectedPlan} Upgrade Coming Soon
             </h3>
-            <p className="text-xs text-muted leading-relaxed mb-6">
+            <p className="text-xs text-zinc-400 leading-relaxed mb-6">
               Billing and checkout features are currently in active development. Free tier processing remains available for your account.
             </p>
 

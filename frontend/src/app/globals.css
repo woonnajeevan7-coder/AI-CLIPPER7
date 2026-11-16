@@ -69,3 +69,40 @@ body {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background;
   }
 }
+
+/* WCAG 2.4.7 & 2.4.11: Accessible Focus Indicator */
+:focus-visible {
+  outline: 2px solid #8B5CF6;
+  outline-offset: 2px;
+}
+
+/* WCAG 2.2.2 & 2.3.3: Strict Prefers-Reduced-Motion Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn-spell,
+  .card-spell {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .animate-spin,
+  .animate-pulse,
+  .animate-ping,
+  .animate-bounce,
+  .animate-float,
+  .animate-wave1,
+  .animate-wave2,
+  .animate-wave3,
+  .animate-wave4,
+  .animate-pulse-subtle {
+    animation: none !important;
+  }
+}

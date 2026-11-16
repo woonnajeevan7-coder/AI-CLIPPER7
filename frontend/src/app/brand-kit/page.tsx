@@ -175,18 +175,22 @@ export default function BrandKitPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <label htmlFor="primary-color-hex" className="block text-xs font-mono text-muted mb-2">
                   Primary Accent Color
                 </label>
                 <div className="flex items-center space-x-3 bg-surfaceElevated border border-border rounded-xl p-2.5">
                   <input
                     type="color"
+                    id="primary-color-picker"
+                    aria-label="Pick primary accent color"
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
                     className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
                   />
                   <input
                     type="text"
+                    id="primary-color-hex"
+                    aria-label="Primary accent color hex code"
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
                     className="w-full bg-transparent text-xs font-mono text-foreground focus:outline-none uppercase"
@@ -195,18 +199,22 @@ export default function BrandKitPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <label htmlFor="secondary-color-hex" className="block text-xs font-mono text-muted mb-2">
                   Secondary Highlight Color
                 </label>
                 <div className="flex items-center space-x-3 bg-surfaceElevated border border-border rounded-xl p-2.5">
                   <input
                     type="color"
+                    id="secondary-color-picker"
+                    aria-label="Pick secondary highlight color"
                     value={secondaryColor}
                     onChange={(e) => setSecondaryColor(e.target.value)}
                     className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0"
                   />
                   <input
                     type="text"
+                    id="secondary-color-hex"
+                    aria-label="Secondary highlight color hex code"
                     value={secondaryColor}
                     onChange={(e) => setSecondaryColor(e.target.value)}
                     className="w-full bg-transparent text-xs font-mono text-foreground focus:outline-none uppercase"
@@ -225,18 +233,20 @@ export default function BrandKitPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <span className="block text-xs font-mono text-muted mb-2">
                   Font Family
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                </span>
+                <div role="radiogroup" aria-label="Font family selection" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {['Inter', 'Montserrat', 'Roboto', 'JetBrains Mono'].map((font) => (
                     <button
                       key={font}
                       type="button"
+                      role="radio"
+                      aria-checked={fontFamily === font}
                       onClick={() => setFontFamily(font)}
-                      className={`p-3 rounded-xl border text-xs font-bold transition ${
+                      className={`p-3 rounded-xl border text-xs font-bold btn-spell ${
                         fontFamily === font
-                          ? 'bg-accent/15 border-accent text-accent'
+                          ? 'bg-accent/20 border-accent text-accent-light shadow-sm ring-1 ring-accent'
                           : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
                       }`}
                     >
@@ -247,10 +257,11 @@ export default function BrandKitPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <label htmlFor="default-subtitle-preset" className="block text-xs font-mono text-muted mb-2">
                   Default Subtitle Burn-In Preset
                 </label>
                 <select
+                  id="default-subtitle-preset"
                   value={captionPreset}
                   onChange={(e) => setCaptionPreset(e.target.value)}
                   className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-2.5 text-xs text-foreground focus:outline-none focus:border-accent"
@@ -273,10 +284,11 @@ export default function BrandKitPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <label htmlFor="watermark-input" className="block text-xs font-mono text-muted mb-2">
                   Social Handle / Watermark Text
                 </label>
                 <input
+                  id="watermark-input"
                   type="text"
                   value={watermarkText}
                   onChange={(e) => setWatermarkText(e.target.value)}
@@ -286,10 +298,10 @@ export default function BrandKitPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <span className="block text-xs font-mono text-muted mb-2">
                   Overlay Position
-                </label>
-                <div className="grid grid-cols-3 gap-3">
+                </span>
+                <div role="radiogroup" aria-label="Watermark overlay position" className="grid grid-cols-3 gap-3">
                   {[
                     { id: 'top_right', label: 'Top Right' },
                     { id: 'bottom_left', label: 'Bottom Left' },
@@ -298,10 +310,12 @@ export default function BrandKitPage() {
                     <button
                       key={pos.id}
                       type="button"
+                      role="radio"
+                      aria-checked={watermarkPosition === pos.id}
                       onClick={() => setWatermarkPosition(pos.id)}
-                      className={`p-2.5 rounded-xl border text-xs font-semibold transition ${
+                      className={`p-2.5 rounded-xl border text-xs font-semibold btn-spell ${
                         watermarkPosition === pos.id
-                          ? 'bg-accent/15 border-accent text-accent'
+                          ? 'bg-accent/20 border-accent text-accent-light shadow-sm ring-1 ring-accent'
                           : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
                       }`}
                     >
@@ -321,7 +335,9 @@ export default function BrandKitPage() {
                 <span>Outro Call-to-Action Card</span>
               </div>
               <input
+                id="outro-enabled-toggle"
                 type="checkbox"
+                aria-label="Enable outro call-to-action card"
                 checked={outroEnabled}
                 onChange={(e) => setOutroEnabled(e.target.checked)}
                 className="w-4 h-4 accent-accent rounded cursor-pointer"
@@ -330,10 +346,11 @@ export default function BrandKitPage() {
 
             {outroEnabled && (
               <div>
-                <label className="block text-xs font-mono text-muted mb-2">
+                <label htmlFor="outro-text-input" className="block text-xs font-mono text-muted mb-2">
                   Outro Card Text
                 </label>
                 <input
+                  id="outro-text-input"
                   type="text"
                   value={outroText}
                   onChange={(e) => setOutroText(e.target.value)}

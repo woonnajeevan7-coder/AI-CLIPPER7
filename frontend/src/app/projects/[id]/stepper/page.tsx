@@ -226,7 +226,14 @@ export default function LiveStepperPage() {
               {currentProgress}%
             </span>
           </div>
-          <div className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border relative">
+          <div
+            role="progressbar"
+            aria-valuenow={currentProgress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Pipeline execution progress"
+            className="w-full h-3 bg-surfaceElevated rounded-full overflow-hidden border border-border relative"
+          >
             <div
               className="h-full bg-gradient-to-r from-purple-500 via-accent to-pink-500 rounded-full transition-all duration-500 ease-out relative"
               style={{ width: `${currentProgress}%` }}
@@ -237,7 +244,7 @@ export default function LiveStepperPage() {
         </div>
 
         {/* 5-Stage Stepper List */}
-        <div className="space-y-4 mb-8">
+        <div role="list" aria-label="Pipeline execution stages" className="space-y-4 mb-8">
           {STAGES.map((st, idx) => {
             const Icon = st.icon;
             const isDone = currentProgress > st.targetProgress || isCompleted;
@@ -246,12 +253,13 @@ export default function LiveStepperPage() {
             return (
               <div
                 key={st.id}
+                role="listitem"
                 className={`p-4 rounded-2xl border transition-all duration-300 flex items-start space-x-4 ${
                   isCurrent
                     ? 'bg-surfaceElevated border-accent shadow-accent-glow card-spell scale-[1.01]'
                     : isDone
                     ? 'bg-surfaceElevated/50 border-border opacity-95'
-                    : 'bg-surface/60 border-borderSubtle opacity-65'
+                    : 'bg-surface/70 border-borderSubtle text-zinc-400'
                 }`}
               >
                 {/* Step Circle */}
@@ -311,7 +319,15 @@ export default function LiveStepperPage() {
             </div>
           </div>
 
-          <div className="font-mono text-xs text-muted space-y-1.5 max-h-40 overflow-y-auto pr-2">
+          <div
+            role="log"
+            aria-live="polite"
+            aria-atomic="false"
+            aria-relevant="additions"
+            aria-label="Real-time agent execution telemetry logs"
+            className="font-mono text-xs text-muted space-y-1.5 max-h-40 overflow-y-auto pr-2 focus-ring"
+            tabIndex={0}
+          >
             {logs.map((log, i) => (
               <div key={i} className="leading-relaxed flex items-start space-x-2">
                 <span className="text-accent/70 select-none font-bold">&gt;</span>

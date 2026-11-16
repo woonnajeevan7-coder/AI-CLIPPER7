@@ -4,7 +4,13 @@ import React from 'react';
 
 export function CardSkeleton() {
   return (
-    <div className="bg-surfaceElevated border border-border rounded-2xl p-4 flex flex-col space-y-4 animate-pulse">
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading video clips..."
+      className="bg-surfaceElevated border border-border rounded-2xl p-4 flex flex-col space-y-4 animate-pulse"
+    >
+      <span className="sr-only">Loading card data...</span>
       {/* 9:16 Video Preview Skeleton */}
       <div className="w-full aspect-[9/16] bg-surface rounded-xl flex items-center justify-center">
         <div className="w-12 h-12 rounded-full bg-borderSubtle"></div>

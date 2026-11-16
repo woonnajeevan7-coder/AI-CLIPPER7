@@ -253,9 +253,13 @@ export default function ProjectResultsPage() {
                   </div>
 
                   {/* Play Overlay */}
-                  <div className="self-center w-14 h-14 rounded-full bg-accent/90 hover:bg-accent text-white flex items-center justify-center shadow-lg transition-all duration-200 group-hover:scale-110 active:scale-95 cursor-pointer">
+                  <button
+                    onClick={() => {}}
+                    aria-label={`Play preview of ${clip.title}`}
+                    className="self-center w-14 h-14 rounded-full bg-accent/90 hover:bg-accent text-white flex items-center justify-center shadow-lg transition-all duration-200 group-hover:scale-110 active:scale-95 cursor-pointer btn-spell"
+                  >
                     <Play className="w-6 h-6 fill-white ml-0.5" />
-                  </div>
+                  </button>
 
                   {/* Bottom Subtitle / Hook Preview */}
                   <div className="z-10 bg-black/90 backdrop-blur-md p-3.5 rounded-xl border border-white/10 space-y-1 shadow-md">
@@ -288,6 +292,7 @@ export default function ProjectResultsPage() {
                     </span>
                     <button
                       onClick={() => copyHeadline(selectedHeadline, clip.id)}
+                      aria-label={`Copy headline variant: ${selectedHeadline}`}
                       className="text-xs text-accent hover:text-accent-light flex items-center space-x-1 btn-spell"
                     >
                       {copiedId === clip.id ? (
@@ -305,10 +310,13 @@ export default function ProjectResultsPage() {
                   </div>
 
                   {/* Tabs */}
-                  <div className="flex rounded-lg bg-surface p-1 border border-border mb-2.5">
+                  <div role="tablist" aria-label="Headline variants" className="flex rounded-lg bg-surface p-1 border border-border mb-2.5">
                     {(['curiosity', 'value', 'bold_claim'] as const).map((tab) => (
                       <button
                         key={tab}
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        aria-label={`${tab.replace('_', ' ')} headline variant`}
                         onClick={() =>
                           setActiveVariantTab((prev) => ({ ...prev, [clip.id]: tab }))
                         }
@@ -332,6 +340,9 @@ export default function ProjectResultsPage() {
                 <div className="border border-border rounded-xl overflow-hidden mb-5 bg-surfaceElevated/40">
                   <button
                     onClick={() => toggleRubric(clip.id)}
+                    aria-expanded={isRubricOpen}
+                    aria-controls={`rubric-panel-${clip.id}`}
+                    aria-label={`Toggle 4-pillar virality rubric breakdown for ${clip.title}`}
                     className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold text-muted hover:text-foreground transition group/rubric btn-spell"
                   >
                     <div className="flex items-center space-x-1.5">
@@ -342,13 +353,20 @@ export default function ProjectResultsPage() {
                   </button>
 
                   {isRubricOpen && (
-                    <div className="p-3.5 border-t border-border space-y-2.5 text-xs animate-fadeIn">
+                    <div id={`rubric-panel-${clip.id}`} className="p-3.5 border-t border-border space-y-2.5 text-xs animate-fadeIn">
                       <div className="space-y-1.5">
                         <div className="flex justify-between font-mono">
                           <span className="text-muted">Hook Strength:</span>
                           <span className="text-foreground font-bold">{clip.rubric.hook_strength}/25</span>
                         </div>
-                        <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
+                        <div
+                          role="progressbar"
+                          aria-valuenow={clip.rubric.hook_strength}
+                          aria-valuemin={0}
+                          aria-valuemax={25}
+                          aria-label="Hook Strength score"
+                          className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
+                        >
                           <div
                             className="h-full bg-accent rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${(clip.rubric.hook_strength / 25) * 100}%` }}
@@ -361,7 +379,14 @@ export default function ProjectResultsPage() {
                           <span className="text-muted">Self-Contained Context:</span>
                           <span className="text-foreground font-bold">{clip.rubric.self_contained}/25</span>
                         </div>
-                        <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
+                        <div
+                          role="progressbar"
+                          aria-valuenow={clip.rubric.self_contained}
+                          aria-valuemin={0}
+                          aria-valuemax={25}
+                          aria-label="Self-Contained Context score"
+                          className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
+                        >
                           <div
                             className="h-full bg-emerald-400 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${(clip.rubric.self_contained / 25) * 100}%` }}
@@ -374,7 +399,14 @@ export default function ProjectResultsPage() {
                           <span className="text-muted">Payoff & Value:</span>
                           <span className="text-foreground font-bold">{clip.rubric.payoff}/25</span>
                         </div>
-                        <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
+                        <div
+                          role="progressbar"
+                          aria-valuenow={clip.rubric.payoff}
+                          aria-valuemin={0}
+                          aria-valuemax={25}
+                          aria-label="Payoff & Value score"
+                          className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
+                        >
                           <div
                             className="h-full bg-amber-400 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${(clip.rubric.payoff / 25) * 100}%` }}
@@ -387,7 +419,14 @@ export default function ProjectResultsPage() {
                           <span className="text-muted">Zero Context Needed:</span>
                           <span className="text-foreground font-bold">{clip.rubric.zero_context_needed}/25</span>
                         </div>
-                        <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
+                        <div
+                          role="progressbar"
+                          aria-valuenow={clip.rubric.zero_context_needed}
+                          aria-valuemin={0}
+                          aria-valuemax={25}
+                          aria-label="Zero Context Needed score"
+                          className="w-full h-1.5 bg-surface rounded-full overflow-hidden"
+                        >
                           <div
                             className="h-full bg-pink-400 rounded-full transition-all duration-500 ease-out"
                             style={{ width: `${(clip.rubric.zero_context_needed / 25) * 100}%` }}
@@ -408,6 +447,7 @@ export default function ProjectResultsPage() {
                 <div className="mt-auto grid grid-cols-2 gap-3 pt-2">
                   <Link
                     href={`/editor/${clip.id}`}
+                    aria-label={`Edit ${clip.title} in Studio`}
                     className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-surfaceElevated hover:bg-surface border border-border hover:border-accent text-xs font-bold text-foreground btn-spell shadow-sm"
                   >
                     <Edit3 className="w-3.5 h-3.5 text-accent" />
@@ -416,6 +456,7 @@ export default function ProjectResultsPage() {
 
                   <button
                     onClick={() => handleDownload(clip.video_url || '/sample_short.mp4', `${clip.id}.mp4`)}
+                    aria-label={`Download ${clip.title} MP4`}
                     className="flex items-center justify-center space-x-1.5 py-2.5 px-3 rounded-xl bg-accent hover:bg-accent-hover text-xs font-bold text-white shadow-accent-glow btn-spell"
                   >
                     <Download className="w-3.5 h-3.5" />

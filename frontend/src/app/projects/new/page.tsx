@@ -164,31 +164,33 @@ export default function NewProjectPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Project Title Input */}
           <div>
-            <label className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
+            <label htmlFor="project-title" className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
               Project Title (Optional)
             </label>
             <input
+              id="project-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Lex Fridman Ep #412 Highlights"
-              className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted/60 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition font-sans"
+              className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-zinc-400 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition font-sans"
             />
           </div>
 
           {/* Ingestion Input */}
           {ingestMode === 'url' ? (
             <div>
-              <label className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
+              <label htmlFor="video-url" className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
                 Video Link
               </label>
               <div className="relative">
                 <input
+                  id="video-url"
                   type="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full bg-surfaceElevated border border-border rounded-xl pl-11 pr-4 py-3.5 text-foreground placeholder:text-muted/60 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition font-sans"
+                  className="w-full bg-surfaceElevated border border-border rounded-xl pl-11 pr-4 py-3.5 text-foreground placeholder:text-zinc-400 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition font-sans"
                   required={ingestMode === 'url'}
                 />
                 <LinkIcon className="w-5 h-5 text-muted absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -199,13 +201,22 @@ export default function NewProjectPage() {
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
+              <span className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
                 Video Media File
-              </label>
+              </span>
               <div
+                tabIndex={0}
+                role="button"
+                aria-label="Upload video file - Click to browse or drag and drop file here"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={handleFileDrop}
-                className="w-full border-2 border-dashed border-border hover:border-accent/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-surfaceElevated/50 transition group"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    document.getElementById('file-input')?.click();
+                  }
+                }}
+                className="w-full border-2 border-dashed border-border hover:border-accent/60 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer bg-surfaceElevated/50 transition group focus-ring"
                 onClick={() => document.getElementById('file-input')?.click()}
               >
                 <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent mb-3 group-hover:scale-110 transition">
@@ -231,6 +242,7 @@ export default function NewProjectPage() {
                 <input
                   id="file-input"
                   type="file"
+                  aria-label="Select video file"
                   accept="video/mp4,video/quicktime,video/x-matroska"
                   className="hidden"
                   onChange={(e) => {
@@ -248,6 +260,8 @@ export default function NewProjectPage() {
           <div className="border border-border hover:border-accent/30 rounded-2xl overflow-hidden bg-surfaceElevated/30 transition-colors">
             <button
               type="button"
+              aria-expanded={showAdvanced}
+              aria-controls="advanced-preferences-panel"
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-surfaceElevated/60 transition group btn-spell"
             >
@@ -264,15 +278,16 @@ export default function NewProjectPage() {
             </button>
 
             {showAdvanced && (
-              <div className="p-5 border-t border-border space-y-6 animate-fadeIn">
+              <div id="advanced-preferences-panel" className="p-5 border-t border-border space-y-6 animate-fadeIn">
                 {/* 1. Target Duration */}
                 <div>
-                  <label className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
+                  <span className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
                     Clip Duration Window
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  </span>
+                  <div className="grid grid-cols-2 gap-3" role="group" aria-label="Target clip duration window">
                     <button
                       type="button"
+                      aria-pressed={durationTarget === '20-45'}
                       onClick={() => setDurationTarget('20-45')}
                       className={`py-2.5 px-4 rounded-xl text-sm font-semibold border flex items-center justify-between btn-spell ${
                         durationTarget === '20-45'
@@ -285,6 +300,7 @@ export default function NewProjectPage() {
                     </button>
                     <button
                       type="button"
+                      aria-pressed={durationTarget === '45-60'}
                       onClick={() => setDurationTarget('45-60')}
                       className={`py-2.5 px-4 rounded-xl text-sm font-semibold border flex items-center justify-between btn-spell ${
                         durationTarget === '45-60'
@@ -301,20 +317,26 @@ export default function NewProjectPage() {
                 {/* 2. Number of Clips */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
+                    <label htmlFor="num-clips-slider" className="text-xs font-mono font-semibold uppercase text-muted tracking-wider">
                       Number of Viral Candidates
                     </label>
-                    <span className="text-xs font-mono font-bold text-accent">
+                    <span className="text-xs font-mono font-bold text-accent-light">
                       {numClips} {numClips === 1 ? 'Clip' : 'Clips'}
                     </span>
                   </div>
                   <input
+                    id="num-clips-slider"
                     type="range"
                     min={1}
                     max={5}
                     value={numClips}
+                    aria-label="Target number of viral candidate clips"
+                    aria-valuemin={1}
+                    aria-valuemax={5}
+                    aria-valuenow={numClips}
+                    aria-valuetext={`${numClips} clips`}
                     onChange={(e) => setNumClips(parseInt(e.target.value))}
-                    className="w-full accent-accent bg-border h-2 rounded-lg cursor-pointer"
+                    className="w-full accent-accent bg-border h-2 rounded-lg cursor-pointer focus-ring"
                   />
                   <div className="flex justify-between text-[11px] font-mono text-muted mt-1">
                     <span>1 Clip (Quickest)</span>
@@ -325,10 +347,14 @@ export default function NewProjectPage() {
 
                 {/* 3. Subtitle Preset */}
                 <div>
-                  <label className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
+                  <span className="block text-xs font-mono font-semibold uppercase text-muted tracking-wider mb-2">
                     Subtitle Typography Preset
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  </span>
+                  <div
+                    role="radiogroup"
+                    aria-label="Subtitle typography presets"
+                    className="grid grid-cols-2 sm:grid-cols-4 gap-3"
+                  >
                     {[
                       { id: 'hormozi', name: 'Hormozi', desc: 'Yellow / Bold' },
                       { id: 'cyber_cyan', name: 'Cyber Cyan', desc: 'Neon Accent' },
@@ -338,10 +364,13 @@ export default function NewProjectPage() {
                       <button
                         key={st.id}
                         type="button"
+                        role="radio"
+                        aria-checked={captionPreset === st.id}
+                        aria-label={`${st.name} preset: ${st.desc}`}
                         onClick={() => setCaptionPreset(st.id)}
                         className={`p-3 rounded-xl border text-left btn-spell ${
                           captionPreset === st.id
-                            ? 'bg-accent/20 border-accent shadow-sm'
+                            ? 'bg-accent/20 border-accent shadow-sm ring-1 ring-accent'
                             : 'bg-surfaceElevated border-border hover:border-muted/80'
                         }`}
                       >

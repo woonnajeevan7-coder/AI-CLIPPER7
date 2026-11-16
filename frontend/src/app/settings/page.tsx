@@ -192,28 +192,30 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-mono text-muted mb-2">
+            <label htmlFor="groq-api-key" className="block text-xs font-mono text-zinc-300 mb-2 font-medium">
               Groq API Key (Optional Client Override)
             </label>
             <div className="relative">
               <input
+                id="groq-api-key"
                 type={showKey ? 'text' : 'password'}
                 value={groqKey}
                 onChange={(e) => setGroqKey(e.target.value)}
                 placeholder="Enter Groq API Key..."
                 autoComplete="off"
-                className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-2.5 text-xs font-mono text-foreground focus:outline-none focus:border-accent"
+                aria-describedby="groq-key-hint"
+                className="w-full bg-surfaceElevated border border-border rounded-xl px-4 py-2.5 text-xs font-mono text-foreground placeholder:text-zinc-400 focus:outline-none focus:border-accent"
               />
               <button
                 type="button"
                 onClick={() => setShowKey(!showKey)}
                 aria-label={showKey ? 'Hide API key' : 'Show API key'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-foreground"
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[11px] text-muted mt-2">
+            <p id="groq-key-hint" className="text-[11px] text-zinc-400 mt-2">
               Keys are stored in your local browser session only and never exposed in logs or URLs.
             </p>
           </div>
@@ -227,46 +229,56 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-4">
-            <label className="flex items-center justify-between p-4 rounded-xl bg-surfaceElevated border border-border cursor-pointer">
+            <label htmlFor="nvenc-checkbox" className="flex items-center justify-between p-4 rounded-xl bg-surfaceElevated border border-border cursor-pointer">
               <div>
                 <p className="text-sm font-semibold text-foreground">
                   NVIDIA NVENC Hardware Encoding
                 </p>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-zinc-400">
                   Uses h264_nvenc encoder when supported GPU hardware is detected.
                 </p>
               </div>
               <input
+                id="nvenc-checkbox"
                 type="checkbox"
                 checked={useNvenc}
                 onChange={(e) => setUseNvenc(e.target.checked)}
-                className="w-4 h-4 accent-accent rounded"
+                aria-label="Enable NVIDIA NVENC hardware encoding"
+                className="w-4 h-4 accent-accent rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               />
             </label>
 
             <div>
-              <label className="block text-xs font-mono text-muted mb-2">
+              <span id="resolution-group-label" className="block text-xs font-mono text-zinc-300 mb-2 font-medium">
                 Output Canvas Resolution
-              </label>
-              <div className="grid grid-cols-2 gap-3">
+              </span>
+              <div
+                role="radiogroup"
+                aria-labelledby="resolution-group-label"
+                className="grid grid-cols-2 gap-3"
+              >
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={resolution === '1080x1920'}
                   onClick={() => setResolution('1080x1920')}
                   className={`py-2.5 px-4 rounded-xl text-xs font-semibold border transition ${
                     resolution === '1080x1920'
-                      ? 'bg-accent/15 border-accent text-accent'
-                      : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
+                      ? 'bg-accent/15 border-accent text-accent font-bold'
+                      : 'bg-surfaceElevated border-border text-zinc-300 hover:text-foreground'
                   }`}
                 >
                   1080 x 1920 (9:16 Full HD)
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={resolution === '720x1280'}
                   onClick={() => setResolution('720x1280')}
                   className={`py-2.5 px-4 rounded-xl text-xs font-semibold border transition ${
                     resolution === '720x1280'
-                      ? 'bg-accent/15 border-accent text-accent'
-                      : 'bg-surfaceElevated border-border text-muted hover:text-foreground'
+                      ? 'bg-accent/15 border-accent text-accent font-bold'
+                      : 'bg-surfaceElevated border-border text-zinc-300 hover:text-foreground'
                   }`}
                 >
                   720 x 1280 (9:16 HD Draft)
@@ -280,34 +292,42 @@ export default function SettingsPage() {
         <div className="bg-surface border border-border rounded-2xl p-6 shadow-card-glow space-y-4">
           <div className="flex items-center space-x-2 text-sm font-bold text-foreground">
             <HardDrive className="w-4 h-4 text-accent" />
-            <span>Clip Storage Backend</span>
+            <span id="storage-backend-label">Clip Storage Backend</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div
+            role="radiogroup"
+            aria-labelledby="storage-backend-label"
+            className="grid grid-cols-2 gap-3"
+          >
             <button
               type="button"
+              role="radio"
+              aria-checked={storageType === 'local'}
               onClick={() => setStorageType('local')}
               className={`p-3 rounded-xl border text-left transition ${
                 storageType === 'local'
                   ? 'bg-accent/15 border-accent text-accent'
-                  : 'bg-surfaceElevated border-border text-muted'
+                  : 'bg-surfaceElevated border-border text-zinc-300 hover:text-foreground'
               }`}
             >
               <p className="text-xs font-bold text-foreground">Local Filesystem</p>
-              <p className="text-[11px] text-muted">temp_media &amp; output_clips folders</p>
+              <p className="text-[11px] text-zinc-400">temp_media &amp; output_clips folders</p>
             </button>
 
             <button
               type="button"
+              role="radio"
+              aria-checked={storageType === 'r2'}
               onClick={() => setStorageType('r2')}
               className={`p-3 rounded-xl border text-left transition ${
                 storageType === 'r2'
                   ? 'bg-accent/15 border-accent text-accent'
-                  : 'bg-surfaceElevated border-border text-muted'
+                  : 'bg-surfaceElevated border-border text-zinc-300 hover:text-foreground'
               }`}
             >
               <p className="text-xs font-bold text-foreground">Cloudflare R2 Bucket</p>
-              <p className="text-[11px] text-muted">S3-compatible object storage</p>
+              <p className="text-[11px] text-zinc-400">S3-compatible object storage</p>
             </button>
           </div>
         </div>
