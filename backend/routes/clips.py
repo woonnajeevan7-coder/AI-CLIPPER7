@@ -21,10 +21,17 @@ class TrimClipRequest(BaseModel):
 
 
 @router.get("/{clip_id}")
-def get_clip(clip_id: str, db: Session = Depends(get_db)):
+def get_clip(
+    clip_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     clip = db.query(Clip).filter(Clip.id == clip_id).first()
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found.")
+
+    if not clip.project or clip.project.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this clip.")
 
     download_url = storage.generate_presigned_download_url(clip.r2_key or f"clips/{clip.id}.mp4")
 
@@ -48,10 +55,18 @@ def get_clip(clip_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{clip_id}/trim")
-def trim_clip(clip_id: str, req: TrimClipRequest, db: Session = Depends(get_db)):
+def trim_clip(
+    clip_id: str,
+    req: TrimClipRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     clip = db.query(Clip).filter(Clip.id == clip_id).first()
     if not clip:
         raise HTTPException(status_code=404, detail="Clip not found.")
+
+    if not clip.project or clip.project.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this clip.")
 
     if req.new_end_seconds <= req.new_start_seconds:
         raise HTTPException(status_code=400, detail="Invalid trim bounds: end must be greater than start.")

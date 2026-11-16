@@ -9,17 +9,29 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Job, User
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_sse
 from ..sse import job_progress_sse_stream
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
 
 @router.get("/{job_id}/stream")
-async def stream_job_telemetry(job_id: str):
+async def stream_job_telemetry(
+    job_id: str,
+    current_user: User = Depends(get_current_user_sse),
+    db: Session = Depends(get_db)
+):
     """
     Server-Sent Events endpoint streaming real-time stage progress to the client.
+    Guarded by auth and project ownership.
     """
+    job = db.query(Job).filter(Job.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found.")
+
+    if not job.project or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this job stream.")
+
     return StreamingResponse(
         job_progress_sse_stream(job_id),
         media_type="text/event-stream",
@@ -32,10 +44,17 @@ async def stream_job_telemetry(job_id: str):
 
 
 @router.get("/{job_id}")
-def get_job_status(job_id: str, db: Session = Depends(get_db)):
+def get_job_status(
+    job_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     job = db.query(Job).filter(Job.id == job_id).first()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
+
+    if not job.project or job.project.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this job.")
 
     return {
         "id": job.id,
