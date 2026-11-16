@@ -1,12 +1,12 @@
 <div align="center">
 
 ```
-   ______  __     ________  ____  ______ 
-  / ____/ / /    /  _/ __ \/  _/ /_  __/ 
- / /     / /     / // /_/ // /    / /    
-/ /___  / /___ _/ // ____// /    / /     
-\____/ /_____//___/_/   /___/   /_/      
-     VERTICAL MOTION STUDIO PRO          
+    ___    ____          ________    ____  ____  __________ _____ 
+   /   |  /  _/         / ____/ /   /  _/ / __ \/ __ \/ ____/__  / 
+  / /| |  / /   ______ / /   / /    / /  / /_/ / /_/ / __/    / /  
+ / ___ |_/ /   /_____// /___/ /____/ /  / ____/ ____/ /___   / /   
+/_/  |_/___/          \____/_____/___/ /_/   /_/   /_____/  /_/    
+                    VERTICAL MOTION STUDIO PRO                     
 ```
 
 # 🎬 AI-CLIPPER7 — Vertical Motion Studio Pro
@@ -35,16 +35,16 @@
 ---
 
 > [!NOTE]
-> ### 🔍 Reverse Engineering & Origin Notice
-> **Transparency Disclaimer:** I am **not** the original author or architect of this software. **ClipIt** was created by reverse-engineering a compiled standalone desktop binary executable (`.exe`). The application was decompiled, extracted from PyInstaller archives, decoupled from proprietary lockouts, disarmed of artificial time-bomb restrictions, re-engineered for stable Chromium/Edge IPC, and published as a 100% open-source workstation for creators, researchers, and developers. Full credit for the original layout and conceptual workflow belongs to the original software author.
+> ### 🔍 Open Source Architecture Notice
+> **AI-CLIPPER7** is a 100% open-source vertical video production suite and AI curation engine for creators, streamers, and developers. Built with high-throughput Python, FFmpeg GPU acceleration, intelligent viral moment detection, dynamic captions, and modern web interfaces.
 
 ---
 
-## ⚡ What is ClipIt?
+## ⚡ What is AI-CLIPPER7?
 
-**ClipIt** is a studio-grade desktop video suite engineered from the ground up for high-velocity creators, streamers, and marketing teams. It automates the complex multi-layer composition pipeline required to convert standard 16:9 landscape videos into dynamic 9:16 short-form masterworks for **TikTok**, **Instagram Reels**, and **YouTube Shorts**.
+**AI-CLIPPER7** is a studio-grade desktop video suite engineered from the ground up for high-velocity creators, streamers, and marketing teams. It automates the complex multi-layer composition pipeline required to convert standard 16:9 landscape videos into dynamic 9:16 short-form masterworks for **TikTok**, **Instagram Reels**, and **YouTube Shorts**.
 
-Powered by a hybrid **PyWebView (Edge Chromium)** front-end wrapped over a high-throughput **Python 3.13 + FFmpeg 7.x** hardware-accelerated processing engine, ClipIt delivers fluid 60 FPS visual editing with instant GPU rendering.
+Powered by a high-throughput **Python 3.13 + FFmpeg 7.x** hardware-accelerated processing engine with modern Web and Streamlit interfaces, AI-CLIPPER7 delivers fluid 60 FPS visual editing with instant GPU rendering.
 
 ---
 
@@ -86,61 +86,62 @@ Powered by a hybrid **PyWebView (Edge Chromium)** front-end wrapped over a high-
 
 ## 🏛 Architecture Blueprint
 
-ClipIt marries modern web UI ergonomics with low-latency bare-metal system capabilities:
+AI-CLIPPER7 marries modern web UI ergonomics with low-latency bare-metal system capabilities:
 
 ```mermaid
 graph TD
-    subgraph Frontend ["Frontend UI (Chromium / PyWebView)"]
-        UI["Obsidian Cyber UI (HTML5 / CSS3)"]
-        Interact["Interact.js (Draggable Canvas Stage)"]
-        Client["bundle.min.js (Reactive State Machine)"]
+    subgraph Frontend ["Frontend UI (Streamlit & Next.js Studio)"]
+        UI["Modern Studio Interface"]
+        Interact["Interactive Canvas Stage"]
+        Client["Reactive State Management"]
     end
 
-    subgraph Bridge ["Native IPC Bridge"]
-        API["VideoRepurposerApi (Python Bridge)"]
+    subgraph Bridge ["API & IPC Bridge"]
+        API["FastAPI / Streamlit Session State"]
     end
 
-    subgraph Backend ["Core Python Engine (D:\project\clipit)"]
-        Config["backend.config (Settings & Paths)"]
-        Probe["backend.media_probe (FFprobe Analyzer)"]
-        Headline["backend.headline (ASS Generator)"]
-        Subtitles["backend.subtitles (Caption Syncer)"]
-        Outro["backend.outro_generator (Canvas Renderer)"]
-        Project["backend.project_manager (.clipit I/O)"]
-        Pipeline["backend.export_pipeline (Render Graph)"]
+    subgraph Backend ["Core Python Engine (AI-CLIPPER7)"]
+        Config["agents.orchestrator (Pipeline Coordinator)"]
+        Probe["ffmpeg_utils (FFprobe Analyzer)"]
+        Curator["agents.curator (AI Viral Moment Selector)"]
+        Framing["agents.framing (Face Tracking & 9:16 Action Crop)"]
+        Captions["captions.py (ASS / Karaoke Highlighter)"]
+        Audio["audio_signals.py (Ducking & Voice Isolation)"]
+        Judge["agents.judge (Quality & Metric Evaluation)"]
     end
 
     subgraph Hardware ["Local Execution Environment"]
-        FFMPEG["Bundled ffmpeg.exe (NVENC / AMF / QSV)"]
-        FFPROBE["Bundled ffprobe.exe"]
-        STORAGE["%APPDATA%/ClipIt/ (Local Storage)"]
+        FFMPEG["FFmpeg 7.x (NVENC / AMF / QSV)"]
+        FFPROBE["FFprobe Inspector"]
+        STORAGE["Local Workspace Storage"]
     end
 
     UI --> Client
     Interact --> Client
-    Client -->|pywebview.api| API
+    Client --> API
     API --> Config
-    API --> Probe
-    API --> Headline
-    API --> Subtitles
-    API --> Outro
-    API --> Project
-    API --> Pipeline
+    Config --> Curator
+    Config --> Framing
+    Config --> Captions
+    Config --> Audio
+    Config --> Judge
     Probe --> FFPROBE
-    Pipeline --> FFMPEG
-    Project --> STORAGE
+    Framing --> FFMPEG
+    Captions --> FFMPEG
+    Audio --> FFMPEG
+    Judge --> STORAGE
 ```
 
 ---
 
 ## ⌨️ Keyboard Shortcuts
 
-Speed is everything in content production. ClipIt provides complete hotkey coverage:
+Speed is everything in content production. AI-CLIPPER7 provides complete hotkey coverage:
 
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
 | <kbd>Ctrl</kbd> + <kbd>N</kbd> | **New Project** | Wipes stage and prompts for video import |
-| <kbd>Ctrl</kbd> + <kbd>O</kbd> | **Open Project** | Loads an existing `.clipit` project file |
+| <kbd>Ctrl</kbd> + <kbd>O</kbd> | **Open Project** | Loads an existing project file |
 | <kbd>Ctrl</kbd> + <kbd>S</kbd> | **Save Project** | Saves working session and timeline state |
 | <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | **Save As** | Saves session to a new custom location |
 | <kbd>Ctrl</kbd> + <kbd>M</kbd> | **Export Dialog** | Opens custom bitrate, resolution & encoder modal |
@@ -159,40 +160,24 @@ Speed is everything in content production. ClipIt provides complete hotkey cover
 ## 📁 Project File Anatomy
 
 ```
-D:\project\clipit\
-├── assets/                     # UI icons, branding, emojis & vector badges
-│   ├── app.ico                 # Multi-res Windows desktop icon (16-256px)
-│   ├── app_icon.png            # 512x512 ClipIt master brandmark
-│   ├── clipit_logo.png         # Vector brand logo
-│   ├── emojis/                 # High-resolution Apple-style emoji catalog
-│   └── icons/social/           # Official SVG/PNG social badges (TikTok, YouTube, etc.)
-├── backend/                    # Core Python processing pipelines
-│   ├── __init__.py             # Package declaration
-│   ├── config.py               # Metadata, path resolvers & GDI font registry
-│   ├── time_bomb.py            # License controller (Lifetime Active)
-│   ├── updater.py              # In-app local release manager
-│   ├── core.pyc                # VideoRepurposerApi bridge implementation
-│   ├── export_pipeline.pyc     # Complex FFmpeg filtergraph compiler
-│   ├── media_probe.pyc         # FFprobe stream & codec inspector
-│   ├── headline.pyc            # Rich-text ASS headline layout engine
-│   ├── subtitles.pyc           # Subtitle alignment & ASS caption generator
-│   ├── outro_generator.pyc     # End-card renderer & keyframe animator
-│   ├── project_manager.pyc     # Project I/O, recent projects & autosave
-│   ├── fonts.pyc               # System & local font mapper
-│   └── ffmpeg_engine.pyc       # FFmpeg subprocess coordinator
-├── fonts/                      # 23 bundled typography font families
-├── vendor/                     # Runtime UI libraries
-│   ├── interact.min.js         # Canvas physics, dragging & resizing
-│   └── lucide.min.js           # Lightweight vector icon library
-├── bundle.min.css              # Structural baseline styles
-├── clipit_theme.css            # ClipIt Cyber Indigo & Neon Cyan modern theme
-├── bundle.min.js               # Reactive client state controller
-├── ffmpeg.exe                  # Standalone 64-bit FFmpeg binary
-├── ffprobe.exe                 # Standalone 64-bit FFprobe binary
-├── index.html                  # Main workstation application window
-├── main.py                     # Desktop controller (PyWebView + Edge Chromium)
-├── README.md                   # Workstation documentation
-└── run_clipit.bat              # One-click Windows launch script
+ai-clipper7/
+├── agents/                     # Multi-agent AI squad (Curator, Framing, Judge, etc.)
+│   ├── orchestrator.py         # End-to-end pipeline execution coordinator
+│   ├── curator.py              # LLM-guided viral clip extraction
+│   ├── framing.py              # MediaPipe face tracking & 9:16 dynamic framing
+│   ├── transcriber.py          # Faster-Whisper audio transcription
+│   └── judge.py                # Viral potential scoring & rubric grading
+├── backend/                    # High-performance FastAPI server
+├── frontend/                   # Next.js 14 Web Studio
+├── models/                     # MediaPipe & OpenCV detection models
+├── tests/                      # Automated test suite (unit, integration & E2E)
+├── app.py                      # Streamlit interactive workstation
+├── captions.py                 # ASS karaoke & animated caption compiler
+├── audio_signals.py            # Audio ducking & energy analysis
+├── ffmpeg_utils.py             # Hardware-accelerated GPU export pipeline
+├── requirements.txt            # Python dependencies
+├── run_clipit.bat              # One-click Windows launch script
+└── README.md                   # Workstation documentation
 ```
 
 ---
@@ -206,30 +191,31 @@ D:\project\clipit\
 
 ### Step 1: Clone or Navigate to Directory
 ```powershell
-cd "D:\project\clipit"
+git clone https://github.com/woonnajeevan7-coder/AI-CLIPPER7.git
+cd AI-CLIPPER7
 ```
 
 ### Step 2: Install Runtime Packages
 ```powershell
-pip install pywebview resvg_py pillow
+pip install -r requirements.txt
 ```
 
 ### Step 3: FFmpeg Engine (GPU Accelerated)
-If FFmpeg is already installed on your system or available in your PATH, ClipIt detects and routes to it automatically.
+If FFmpeg is already installed on your system or available in your PATH, AI-CLIPPER7 detects and routes to it automatically.
 To download and extract the standalone binaries into the workspace in one click:
 ```powershell
 .\setup_ffmpeg.bat
 ```
 *(Or install globally via Windows Package Manager: `winget install Gyan.FFmpeg`)*
 
-### Step 4: Launch ClipIt
+### Step 4: Launch AI-CLIPPER7
 Simply double-click:
 ```powershell
 .\run_clipit.bat
 ```
 Or launch directly from terminal:
 ```powershell
-python main.py
+streamlit run app.py
 ```
 
 ---
