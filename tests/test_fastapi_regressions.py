@@ -198,3 +198,17 @@ def test_reject_non_access_tokens_in_get_current_user():
     assert resp_custom.status_code == 401
     assert "access token" in resp_custom.json()["detail"].lower()
 
+
+def test_jwt_secret_key_unset_fails_startup(monkeypatch):
+    from backend.config import Settings
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="JWT_SECRET_KEY environment variable is required"):
+        Settings()
+
+    # Verify docker-compose.yml does not contain hard-coded defaults
+    with open("docker-compose.yml", "r", encoding="utf-8") as f:
+        dc_text = f.read()
+    assert "production-secure-jwt-key-change-me" not in dc_text
+    assert "JWT_SECRET_KEY=${JWT_SECRET_KEY}" in dc_text
+
+

@@ -6,6 +6,9 @@ Environment-backed configuration for database, Redis, JWT, and Cloudflare R2 sto
 import os
 from pathlib import Path
 from typing import Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings:
@@ -13,10 +16,19 @@ class Settings:
     API_V1_PREFIX: str = "/api/v1"
     
     # Auth & Tokens
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "super-secret-production-ai-clipper-key-2026")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    JWT_SECRET_KEY: str
+
+    def __init__(self):
+        jwt_key = os.getenv("JWT_SECRET_KEY")
+        if not jwt_key:
+            raise RuntimeError(
+                "CRITICAL: JWT_SECRET_KEY environment variable is required but not set. "
+                "Set JWT_SECRET_KEY in your environment or .env file before starting the server."
+            )
+        self.JWT_SECRET_KEY = jwt_key
     
     # Database (PostgreSQL with SQLite local dev fallback)
     DATABASE_URL: str = os.getenv(

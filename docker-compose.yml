@@ -46,7 +46,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - JWT_SECRET_KEY=production-secure-jwt-key-change-me
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - GROQ_API_KEY=${GROQ_API_KEY}
     depends_on:
       postgres:
