@@ -41,29 +41,30 @@
   - [x] Streamlit Studio upgraded with 4 production tabs (Studio, Transcript Editor, Brand Kit, Billing)
   - [x] Transcript-based video trimming (click words to adjust timestamps and re-render)
   - [x] Brand Kit management (logo watermark, accent color picker, typography presets)
-  - [x] Stripe-ready pricing cards and monthly quota visualization
+  - [x] **Billing UI [STUB]**: Stripe-ready pricing cards, checkout modal, and monthly quota visualization (UI prototype stub without live Stripe webhook billing pipeline)
   - [x] Next.js 14 web application structure in `frontend/` (Landing, Editor, Brand Kit, Pricing)
   - [x] Dark-mode first, glassmorphism, responsive UI with loading/error states
 - [x] **Phase 7: Growth Features** (COMPLETED)
   - [x] Multi-language support: Hindi (`hi`), Telugu (`te`), Tamil (`ta`), Spanish (`es`), Portuguese (`pt`)
   - [x] Multilingual transcription via Whisper large-v3 & translation engine
   - [x] `ChannelWatcherAgent` for monitoring YouTube channels and auto-clipping new uploads
-  - [x] `OfficialPublisherAgent` for automated scheduling via official YouTube Data API v3, TikTok, and Instagram Reels APIs
+  - [x] **Official Publishers [STUB]**: `OfficialPublisherAgent` for automated scheduling via official YouTube Data API v3, TikTok, and Instagram Reels APIs (dry-run simulation / prototype stub requiring creator OAuth token linkage)
   - [x] Unit test suite covering all growth features passing
 - [x] **Phase 8: Feedback Loop & Moat** (COMPLETED)
   - [x] `MoatFeedbackEngine`: records clip features (scores, duration, hook type, style)
   - [x] Real metrics syncing from official YouTube Analytics & Social APIs (views, retention %, likes, shares)
-  - [x] Correlation and mean-absolute-error evaluation between predicted and actual metrics
+  - [x] Correlation and mean-absolute-error evaluation between predicted and actual metrics (never invents 0.85 correlation; mathematical 0.0 on zero variance)
+  - [x] Database persistence: persists feedback metrics to `ClipMetric` and loads historical data from database
   - [x] Automated calibration & few-shot prompt optimization for `ViralCuratorAgent` and `JudgeAgent`
   - [x] Pytest suite covering all moat features passing
 - [x] **Phase 9: Production Hardening** (COMPLETED)
   - [x] Structured JSON logging & request correlation IDs (`X-Request-ID` middleware)
   - [x] Sentry error and transaction tracing integration
-  - [x] Detailed health endpoint (`/health`) with feature capabilities reporting
+  - [x] Detailed health endpoint (`/health`) reporting real system capabilities (FFmpeg, FFprobe, GPU NVENC, DB, Groq API, SSRF guard)
   - [x] `CostTracker`: per-stage latency timings, Groq token costs, Whisper minutes, and GPU render accounting
-  - [x] Legal & Compliance: Terms of Service, Privacy Policy, and DMCA Copyright Takedown API
+  - [x] **Legal Pages [STUB]**: Terms of Service, Privacy Policy, and DMCA Copyright Takedown API (`routes/legal.py` template boilerplates and in-memory ticket stubs)
   - [x] CI Pipeline workflow (`.github/workflows/ci.yml`) and `.env.example`
-  - [x] Full Pytest test suite with 34 comprehensive tests covering all 9 phases passing
+  - [x] Full Pytest test suite with comprehensive tests covering all phases passing
 
 ---
 

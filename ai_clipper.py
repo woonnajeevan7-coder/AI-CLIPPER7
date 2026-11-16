@@ -15,9 +15,12 @@ try:
 except ImportError:
     pass
 
+import shutil
+from ffmpeg_utils import get_ffmpeg_bin, get_ffprobe_bin
+
 PROJECT_ROOT = Path(__file__).parent.resolve()
-FFMPEG_BIN = PROJECT_ROOT / "ffmpeg.exe"
-FFPROBE_BIN = PROJECT_ROOT / "ffprobe.exe"
+FFMPEG_BIN = get_ffmpeg_bin(PROJECT_ROOT)
+FFPROBE_BIN = get_ffprobe_bin(PROJECT_ROOT)
 FONTS_DIR = PROJECT_ROOT / "fonts"
 OUTPUT_DIR = PROJECT_ROOT / "output_clips"
 TEMP_DIR = PROJECT_ROOT / "temp_media"

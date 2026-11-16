@@ -13,6 +13,7 @@ from agents.transcriber import TranscriberAgent
 from agents.curator import ViralCuratorAgent
 from audio_signals import AudioSignalAnalyzer
 from schema import AudioSignals, WordTimestamp, ClipMetadata
+from ffmpeg_utils import get_ffmpeg_bin
 
 def main():
     load_dotenv()
@@ -21,7 +22,7 @@ def main():
         print("[ERROR] GROQ_API_KEY is not set.")
         sys.exit(1)
 
-    ffmpeg_bin = str(root_dir / "ffmpeg.exe")
+    ffmpeg_bin = str(get_ffmpeg_bin(root_dir))
     temp_dir = root_dir / "temp_media"
     temp_dir.mkdir(exist_ok=True)
 

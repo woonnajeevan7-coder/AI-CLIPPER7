@@ -12,6 +12,7 @@ import cv2
 from schema import CropPlan
 from agents.framing import SmartFramingAgent
 from agents.editor import VideoEditorAgent
+from ffmpeg_utils import get_ffmpeg_bin
 
 
 def test_blur_fallback_plan():
@@ -87,7 +88,7 @@ def test_dual_mode_smoothing_stationary_and_walking():
 
 
 def test_smart_framing_ffmpeg_render_pipeline(tmp_path: Path):
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
     fonts_dir = Path("fonts").resolve()
 
     # Synthesize test video

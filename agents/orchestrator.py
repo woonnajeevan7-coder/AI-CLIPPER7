@@ -5,8 +5,11 @@ Ingestion -> Transcription -> Multimodal Curation -> Two-Pass Judge -> Smart Fra
 """
 
 import time
+import shutil
 from pathlib import Path
 from typing import Dict, Any, Generator, Optional, List
+
+from ffmpeg_utils import get_ffmpeg_bin
 
 from .transcriber import TranscriberAgent
 from .curator import ViralCuratorAgent
@@ -29,7 +32,7 @@ class ClipperOrchestratorAgent:
         provider: str = "groq"
     ):
         self.project_root = project_root
-        self.ffmpeg_bin = project_root / "ffmpeg.exe"
+        self.ffmpeg_bin = get_ffmpeg_bin(project_root)
         self.fonts_dir = project_root / "fonts"
         self.temp_dir = project_root / "temp_media"
         self.output_dir = project_root / "output_clips"

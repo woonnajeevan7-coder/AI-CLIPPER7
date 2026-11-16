@@ -5,7 +5,7 @@ evaluates predictive accuracy, and optimizes curator and judge prompts over time
 """
 
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import numpy as np
 from pydantic import BaseModel, Field
 
@@ -26,10 +26,11 @@ class ClipFeatureVector(BaseModel):
 
 
 class MoatFeedbackEngine:
-    """The Moat: Continuously trains and refines agent curation rubrics on real audience retention."""
+    """The Moat: Continuously trains and refines agent curation rubrics on real audience retention and persists to DB."""
 
-    def __init__(self):
+    def __init__(self, db: Optional[Any] = None):
         self.data_store: Dict[str, ClipFeatureVector] = {}
+        self.db = db
 
     def record_clip_features(
         self,
@@ -39,9 +40,10 @@ class MoatFeedbackEngine:
         hook: str,
         caption_style: str = "hormozi",
         speaker_count: int = 1,
-        has_punch_in: bool = True
+        has_punch_in: bool = True,
+        db: Optional[Any] = None
     ) -> ClipFeatureVector:
-        """Stores the initial generation features of a clip."""
+        """Stores the initial generation features of a clip and persists to database if session available."""
         words = hook.strip().split() if hook else []
         vec = ClipFeatureVector(
             clip_id=clip_id,
@@ -53,6 +55,24 @@ class MoatFeedbackEngine:
             has_punch_in=has_punch_in
         )
         self.data_store[clip_id] = vec
+
+        # Database persistence
+        session = db or self.db
+        if session:
+            try:
+                from backend.models import Clip
+                clip_row = session.query(Clip).filter(Clip.id == clip_id).first()
+                if clip_row:
+                    clip_row.viral_score = predicted_score
+                    clip_row.duration = duration_seconds
+                    clip_row.hook = hook
+                    session.commit()
+            except Exception:
+                try:
+                    session.rollback()
+                except Exception:
+                    pass
+
         return vec
 
     def sync_actual_metrics(
@@ -61,9 +81,29 @@ class MoatFeedbackEngine:
         views: int,
         retention_rate: float,
         likes: int = 0,
-        shares: int = 0
+        shares: int = 0,
+        db: Optional[Any] = None
     ) -> Optional[ClipFeatureVector]:
-        """Updates a clip with verified post performance from official platform APIs."""
+        """Updates a clip with verified post performance from official platform APIs and persists to database."""
+        session = db or self.db
+        if clip_id not in self.data_store and session:
+            try:
+                from backend.models import Clip
+                c = session.query(Clip).filter(Clip.id == clip_id).first()
+                if c:
+                    words = c.hook.strip().split() if c.hook else []
+                    self.data_store[clip_id] = ClipFeatureVector(
+                        clip_id=clip_id,
+                        predicted_score=c.viral_score or 80,
+                        duration_seconds=round(c.duration or 30.0, 2),
+                        hook_word_count=len(words),
+                        caption_style="hormozi",
+                        speaker_count=1,
+                        has_punch_in=True
+                    )
+            except Exception:
+                pass
+
         if clip_id not in self.data_store:
             return None
 
@@ -72,7 +112,71 @@ class MoatFeedbackEngine:
         vec.actual_retention_rate = round(retention_rate, 4)
         vec.actual_likes = likes
         vec.actual_shares = shares
+
+        # Database persistence to ClipMetric
+        if session:
+            try:
+                from backend.models import ClipMetric
+                metric = session.query(ClipMetric).filter(ClipMetric.clip_id == clip_id).first()
+                if not metric:
+                    metric = ClipMetric(
+                        clip_id=clip_id,
+                        views=views,
+                        retention_rate=round(retention_rate, 4),
+                        likes=likes,
+                        shares=shares,
+                        last_synced_at=datetime.now(timezone.utc)
+                    )
+                    session.add(metric)
+                else:
+                    metric.views = views
+                    metric.retention_rate = round(retention_rate, 4)
+                    metric.likes = likes
+                    metric.shares = shares
+                    metric.last_synced_at = datetime.now(timezone.utc)
+                session.commit()
+            except Exception:
+                try:
+                    session.rollback()
+                except Exception:
+                    pass
+
         return vec
+
+    def load_from_db(self, db: Optional[Any] = None) -> int:
+        """Loads historical clips and associated metrics from the database into in-memory data store."""
+        session = db or self.db
+        if not session:
+            return 0
+        try:
+            from backend.models import Clip, ClipMetric
+            clips = session.query(Clip).all()
+            loaded = 0
+            for c in clips:
+                metric = session.query(ClipMetric).filter(ClipMetric.clip_id == c.id).first()
+                views = metric.views if metric else 0
+                retention = metric.retention_rate if metric else 0.0
+                likes = metric.likes if metric else 0
+                shares = metric.shares if metric else 0
+                words = c.hook.strip().split() if c.hook else []
+                vec = ClipFeatureVector(
+                    clip_id=str(c.id),
+                    predicted_score=c.viral_score or 80,
+                    duration_seconds=round(c.duration or 30.0, 2),
+                    hook_word_count=len(words),
+                    caption_style="hormozi",
+                    speaker_count=1,
+                    has_punch_in=True,
+                    actual_views=views,
+                    actual_retention_rate=retention,
+                    actual_likes=likes,
+                    actual_shares=shares
+                )
+                self.data_store[str(c.id)] = vec
+                loaded += 1
+            return loaded
+        except Exception:
+            return 0
 
     def compute_accuracy_metrics(self) -> Dict[str, Any]:
         """Computes correlation and error between predicted virality scores and actual retention."""
@@ -90,16 +194,21 @@ class MoatFeedbackEngine:
         actual_scaled = np.array([s.actual_retention_rate * 100.0 for s in samples], dtype=float)
 
         mae = float(np.mean(np.abs(predicted - actual_scaled)))
-        
+
         # Pearson correlation
-        if np.std(predicted) > 0 and np.std(actual_scaled) > 0:
-            corr = float(np.corrcoef(predicted, actual_scaled)[0, 1])
+        std_pred = float(np.std(predicted))
+        std_actual = float(np.std(actual_scaled))
+        if std_pred > 1e-6 and std_actual > 1e-6:
+            r = float(np.corrcoef(predicted, actual_scaled)[0, 1])
+            corr = 0.0 if (np.isnan(r) or np.isinf(r)) else round(r, 3)
         else:
-            corr = 0.85
+            # Mathematical truth: zero variance means correlation is undefined / 0.0
+            # Never invent an arbitrary 0.85
+            corr = 0.0
 
         return {
             "sample_count": len(samples),
-            "correlation": round(corr, 3),
+            "correlation": corr,
             "mean_absolute_error": round(mae, 2),
             "status": "Calibrated"
         }

@@ -2,6 +2,10 @@ import subprocess
 import json
 import re
 from pathlib import Path
+from ffmpeg_utils import get_ffmpeg_bin, get_ffprobe_bin
+
+ffmpeg_cmd = str(get_ffmpeg_bin())
+ffprobe_cmd = str(get_ffprobe_bin())
 
 clips = [
     ('2-Speaker Podcast (Lex Fridman & Don Lincoln)', 'output_clips/short_1794769829_1.mp4', 'single_face', 'podcast_2speaker'),
@@ -11,13 +15,13 @@ clips = [
 
 for name, path_str, layout, tag in clips:
     p = Path(path_str)
-    res = subprocess.run(['.\\ffprobe.exe', '-v', 'error', '-show_entries', 'stream=codec_name,codec_type,width,height,pix_fmt,channels,sample_rate', '-show_entries', 'format=duration,size', '-of', 'json', str(p)], capture_output=True, text=True)
+    res = subprocess.run([ffprobe_cmd, '-v', 'error', '-show_entries', 'stream=codec_name,codec_type,width,height,pix_fmt,channels,sample_rate', '-show_entries', 'format=duration,size', '-of', 'json', str(p)], capture_output=True, text=True)
     probe = json.loads(res.stdout)
     v = next(s for s in probe['streams'] if s['codec_type'] == 'video')
     a = next(s for s in probe['streams'] if s['codec_type'] == 'audio')
     dur = float(probe['format']['duration'])
 
-    ebur = subprocess.run(['.\\ffmpeg.exe', '-i', str(p), '-af', 'ebur128', '-f', 'null', '-'], capture_output=True, text=True)
+    ebur = subprocess.run([ffmpeg_cmd, '-i', str(p), '-af', 'ebur128', '-f', 'null', '-'], capture_output=True, text=True)
     summary_idx = ebur.stderr.rfind('Summary:')
     summary = ebur.stderr[summary_idx:] if summary_idx != -1 else ebur.stderr
     i_val = re.search(r'I:\s+([-\d.]+)\s+LUFS', summary).group(1)

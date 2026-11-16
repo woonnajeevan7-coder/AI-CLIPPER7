@@ -26,9 +26,10 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from agents import ClipperOrchestratorAgent
 from schema import WordTimestamp
+from ffmpeg_utils import get_ffmpeg_bin, get_ffprobe_bin
 
-FFMPEG_BIN = PROJECT_ROOT / "ffmpeg.exe"
-FFPROBE_BIN = PROJECT_ROOT / "ffprobe.exe"
+FFMPEG_BIN = get_ffmpeg_bin(PROJECT_ROOT)
+FFPROBE_BIN = get_ffprobe_bin(PROJECT_ROOT)
 INPUT_DIR = PROJECT_ROOT / "temp_media" / "test_inputs"
 AUDIT_FRAMES_DIR = PROJECT_ROOT / "temp_media" / "audit_frames"
 OUTPUT_DIR = PROJECT_ROOT / "output_clips"

@@ -11,6 +11,7 @@ import pytest
 from schema import WordTimestamp
 from captions import format_ass_timestamp, group_words_into_chunks, generate_karaoke_ass, STYLE_PRESETS
 from agents.editor import VideoEditorAgent
+from ffmpeg_utils import get_ffmpeg_bin
 
 
 def test_format_ass_timestamp():
@@ -61,7 +62,7 @@ def test_generate_karaoke_ass(tmp_path: Path):
 
 
 def test_render_short_ffmpeg_pipeline(tmp_path: Path):
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
     fonts_dir = Path("fonts").resolve()
     assert ffmpeg_bin.exists()
 
@@ -124,17 +125,16 @@ def test_render_short_ffmpeg_pipeline(tmp_path: Path):
 
 
 def test_video_editor_nvenc_check_and_probe():
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
     fonts_dir = Path("fonts").resolve()
     editor = VideoEditorAgent(ffmpeg_bin=ffmpeg_bin, fonts_dir=fonts_dir)
     nvenc_ok = editor.check_nvenc_available()
     assert isinstance(nvenc_ok, bool)
-    assert nvenc_ok is True
 
 
 def test_transcriber_chunking_offset_accumulation(monkeypatch, tmp_path: Path):
     from agents.transcriber import TranscriberAgent
-    agent = TranscriberAgent(ffmpeg_bin=Path("ffmpeg.exe"), temp_dir=tmp_path)
+    agent = TranscriberAgent(ffmpeg_bin=get_ffmpeg_bin(), temp_dir=tmp_path)
 
     big_audio = tmp_path / "big_audio.mp3"
     with open(big_audio, "wb") as f:

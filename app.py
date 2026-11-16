@@ -21,6 +21,7 @@ from agents import ClipperOrchestratorAgent, VideoEditorAgent
 from schema import WordTimestamp
 from captions import generate_karaoke_ass
 from backend.security import SSRFGuard, SSRFValidationError
+from ffmpeg_utils import get_ffmpeg_bin
 
 
 def safe_html(text: Any) -> str:
@@ -913,7 +914,7 @@ with tab_editor:
             if st.button("⚡ Re-Render Short with New Settings", type="primary", use_container_width=True):
                 with st.spinner("Re-rendering short with updated headline & boundaries..."):
                     editor = VideoEditorAgent(
-                        ffmpeg_bin=PROJECT_ROOT / "ffmpeg.exe",
+                        ffmpeg_bin=get_ffmpeg_bin(PROJECT_ROOT),
                         fonts_dir=PROJECT_ROOT / "fonts"
                     )
                     
@@ -960,7 +961,7 @@ with tab_editor:
                         # Fallback: clean stream slice from already-rendered short without re-padding
                         import subprocess
                         ffmpeg_cmd = [
-                            str(PROJECT_ROOT / "ffmpeg.exe"),
+                            str(get_ffmpeg_bin(PROJECT_ROOT)),
                             "-y",
                             "-ss", str(max(0.0, trim_start - orig_start)),
                             "-t", str(new_duration),

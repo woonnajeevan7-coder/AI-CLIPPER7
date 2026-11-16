@@ -21,6 +21,7 @@ from agents.framing import SmartFramingAgent
 from agents.editor import VideoEditorAgent
 from agents.orchestrator import ClipperOrchestratorAgent
 from captions import generate_karaoke_ass, format_ass_timestamp
+from ffmpeg_utils import get_ffmpeg_bin, get_ffprobe_bin
 
 
 def test_whisper_timestamps_always_used_for_captions(tmp_path: Path, monkeypatch):
@@ -63,7 +64,8 @@ def test_silence_trim_av_and_caption_synchronization(tmp_path: Path):
     (b) Verifies silence trimming trims video and audio synchronously and adjusts
     ASS captions so audio, video, and captions never desynchronize.
     """
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
+    ffprobe_bin = get_ffprobe_bin()
     fonts_dir = Path("fonts").resolve()
     editor = VideoEditorAgent(ffmpeg_bin=ffmpeg_bin, fonts_dir=fonts_dir)
 
@@ -104,7 +106,7 @@ def test_silence_trim_av_and_caption_synchronization(tmp_path: Path):
 
     # Probe stream durations with ffprobe
     p = subprocess.run([
-        "ffprobe.exe", "-v", "error", "-show_entries", "stream=codec_type,duration",
+        str(ffprobe_bin), "-v", "error", "-show_entries", "stream=codec_type,duration",
         "-of", "json", str(out_short)
     ], capture_output=True, text=True)
     streams = json.loads(p.stdout)["streams"]
@@ -119,7 +121,7 @@ def test_sidechaincompress_ducking_and_postmix_loudness(tmp_path: Path):
     """
     (c) Verifies background music ducking uses sidechaincompress and measures post-mix loudness.
     """
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
     fonts_dir = Path("fonts").resolve()
     editor = VideoEditorAgent(ffmpeg_bin=ffmpeg_bin, fonts_dir=fonts_dir)
 
@@ -208,7 +210,7 @@ def test_punch_in_zoom_actually_changes_frames(tmp_path: Path):
     """
     (e) Verifies punch-in zoom actively alters frame content during zoom intervals.
     """
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
     fonts_dir = Path("fonts").resolve()
     editor = VideoEditorAgent(ffmpeg_bin=ffmpeg_bin, fonts_dir=fonts_dir)
 

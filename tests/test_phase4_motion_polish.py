@@ -11,6 +11,7 @@ from schema import WordTimestamp
 from agents.polish import KeywordEmojiTagger, PunchInPlanner, AudioPolisher
 from captions import generate_karaoke_ass
 from agents.editor import VideoEditorAgent
+from ffmpeg_utils import get_ffmpeg_bin
 
 
 def test_keyword_emoji_tagger():
@@ -62,7 +63,7 @@ def test_audio_polisher_filters():
 
 
 def test_motion_polish_ffmpeg_render_pipeline(tmp_path: Path):
-    ffmpeg_bin = Path("ffmpeg.exe").resolve()
+    ffmpeg_bin = get_ffmpeg_bin()
     fonts_dir = Path("fonts").resolve()
 
     # Synthesize test video (2.0s)
