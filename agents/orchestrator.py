@@ -89,10 +89,17 @@ class ClipperOrchestratorAgent:
             # Audio extraction for whisper & acoustic signals
             audio_dest = self.temp_dir / f"{video_id}_audio.mp3"
             if self.transcriber.extract_audio(video_path, audio_dest):
-                if not got_captions and self.curator.api_key and self.curator.provider == "groq":
-                    yield {"step": 1, "agent": "TranscriberAgent", "status": "Transcribing audio with Groq Whisper Large v3 (word timestamps)...", "progress": 50}
-                    all_words = self.transcriber.transcribe_with_groq_whisper(audio_dest, self.curator.api_key)
-                    transcript_text = self.transcriber.words_to_transcript_text(all_words)
+                # Always prioritize Whisper acoustic word timestamps for captions when Whisper is available
+                if self.curator.api_key and self.curator.provider == "groq":
+                    yield {"step": 1, "agent": "TranscriberAgent", "status": "Transcribing audio with Groq Whisper Large v3 (acoustic word timestamps for captions)...", "progress": 50}
+                    try:
+                        whisper_words = self.transcriber.transcribe_with_groq_whisper(audio_dest, self.curator.api_key)
+                        if whisper_words:
+                            all_words = whisper_words
+                            transcript_text = self.transcriber.words_to_transcript_text(all_words)
+                            got_captions = True
+                    except Exception as e:
+                        print(f"[Orchestrator] Groq Whisper fallback to YouTube transcript: {e}")
 
                 audio_signals = AudioSignalAnalyzer.analyze_audio(audio_path=audio_dest, words=all_words)
                 if audio_dest.exists():

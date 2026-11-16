@@ -223,6 +223,62 @@ class SmartFramingAgent:
         max_displacement = max(all_cx) - min(all_cx)
         is_stationary = max_displacement < (0.15 * width)
 
+        # Per-segment crops across scene cut boundaries
+        max_t = max([r.get("time_offset", 0.0) for r in records], default=10.0) + 1.0
+        valid_cuts = sorted([c for c in scene_cuts if 0.4 < c < max_t - 0.4])
+        crop_y = int((height - crop_h) / 2.0)
+
+        if valid_cuts:
+            cut_bounds = [0.0] + valid_cuts + [max_t]
+            segments = []
+            for j in range(len(cut_bounds) - 1):
+                seg_s = cut_bounds[j]
+                seg_e = cut_bounds[j + 1]
+                seg_records = [r for r in records if seg_s <= r.get("time_offset", 0.0) < seg_e and r.get("faces")]
+                if seg_records:
+                    seg_cx_vals = [r["faces"][0]["cx"] for r in seg_records]
+                    seg_cx = float(np.median(seg_cx_vals))
+                elif segments:
+                    seg_cx = float(segments[-1]["cx"])
+                elif all_cx:
+                    seg_cx = float(np.median(all_cx))
+                else:
+                    seg_cx = width / 2.0
+
+                seg_crop_x = int(np.clip(seg_cx - (crop_w / 2.0), 0, width - crop_w))
+                segments.append({
+                    "segment_index": j,
+                    "start": round(seg_s, 2),
+                    "end": round(seg_e, 2),
+                    "cx": seg_cx,
+                    "crop_x": seg_crop_x,
+                    "crop_y": crop_y,
+                    "crop_w": crop_w,
+                    "crop_h": crop_h,
+                })
+
+            unique_crops = set(s["crop_x"] for s in segments)
+            if len(unique_crops) > 1:
+                # Dynamic per-segment crop resetting at each scene cut
+                expr = str(segments[-1]["crop_x"])
+                for j in range(len(valid_cuts) - 1, -1, -1):
+                    cut_t = valid_cuts[j]
+                    x_val = segments[j]["crop_x"]
+                    expr = f"if(lt(t\\,{cut_t:.2f})\\,{x_val}\\,{expr})"
+
+                filter_str = f"[0:v]crop={crop_w}:{crop_h}:'{expr}':{crop_y},scale=1080:1920[merged]"
+                return CropPlan(
+                    layout="single_face",
+                    face_count=1,
+                    scene_cuts=scene_cuts,
+                    crop_x=segments[0]["crop_x"],
+                    crop_y=crop_y,
+                    crop_w=crop_w,
+                    crop_h=crop_h,
+                    crop_segments=segments,
+                    filter_string=filter_str
+                )
+
         if is_stationary:
             # Mode A: Static median crop for stationary speakers (zero micro-jitter)
             final_cx = float(np.median(all_cx))
@@ -271,6 +327,15 @@ class SmartFramingAgent:
             crop_y=crop_y,
             crop_w=crop_w,
             crop_h=crop_h,
+            crop_segments=[{
+                "segment_index": 0,
+                "start": 0.0,
+                "end": round(max_t, 2),
+                "crop_x": crop_x,
+                "crop_y": crop_y,
+                "crop_w": crop_w,
+                "crop_h": crop_h,
+            }],
             filter_string=filter_str
         )
 

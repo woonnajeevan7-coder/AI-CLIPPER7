@@ -69,6 +69,7 @@ class CropPlan(BaseModel):
     crop_h: Optional[int] = None
     split_top_x: Optional[int] = None
     split_bottom_x: Optional[int] = None
+    crop_segments: List[Dict[str, Any]] = Field(default_factory=list, description="Per-segment crop windows partitioned by scene cuts")
     filter_string: str = Field(..., description="FFmpeg video filter string for the layout")
 
 
