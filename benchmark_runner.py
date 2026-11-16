@@ -20,6 +20,9 @@ import re
 import subprocess
 from pathlib import Path
 from typing import Dict, Any, List
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -27,6 +30,11 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from agents import ClipperOrchestratorAgent
 from schema import WordTimestamp
 from ffmpeg_utils import get_ffmpeg_bin, get_ffprobe_bin
+from audit_metrics import (
+    measure_ebur128_loudness as audit_loudness,
+    measure_caption_drift as audit_caption_drift,
+    measure_crop_jitter as audit_crop_jitter,
+)
 
 FFMPEG_BIN = get_ffmpeg_bin(PROJECT_ROOT)
 FFPROBE_BIN = get_ffprobe_bin(PROJECT_ROOT)
@@ -231,19 +239,24 @@ def main():
                 ffprobe_info = run_ffprobe_analysis(out_path)
                 print(f"    Resolution: {ffprobe_info.get('resolution')} | Codec: {ffprobe_info.get('video_codec')} | Audio: {ffprobe_info.get('audio_codec')}")
 
-                # 2. EBU R128 Loudness measurement
-                loudness_info = measure_ebur128_loudness(out_path)
-                print(f"    Loudness: {loudness_info.get('integrated_lufs')} LUFS (target diff: {loudness_info.get('target_diff')} LUFS)")
+                # 2. Real EBU R128 Loudness measurement
+                loudness_info = audit_loudness(out_path)
+                print(f"    Loudness: {loudness_info.get('integrated_lufs')} LUFS (target diff: {loudness_info.get('target_diff_lu')} LU, True Peak: {loudness_info.get('true_peak_dbfs')} dBFS)")
 
                 # 3. Frame extraction
                 frames = extract_frames(out_path, ffprobe_info.get("duration", 30.0), f"{tc['id']}_clip{idx+1}")
                 print(f"    Extracted frames: {list(frames.keys())}")
 
-                # 4. Caption drift
-                drift_info = measure_caption_drift(clip)
-                print(f"    Caption drift: avg={drift_info.get('avg_drift_ms')}ms, max={drift_info.get('max_drift_ms')}ms across {drift_info.get('word_count')} words")
+                # 4. Real Acoustic Caption drift measurement
+                clip_words = clip.get("words", [])
+                clip_start_s = clip.get("data", {}).get("start_seconds", 0.0)
+                drift_info = audit_caption_drift(out_path, clip_words, clip_start=clip_start_s)
+                print(f"    Caption drift: avg={drift_info.get('avg_drift_ms')}ms, max={drift_info.get('max_drift_ms')}ms, P95={drift_info.get('p95_drift_ms')}ms across {drift_info.get('word_count')} words")
 
-                # 5. Crop jitter and collision analysis
+                # 5. Real Frame-by-Frame Crop jitter measurement
+                jitter_info = audit_crop_jitter(out_path, sample_fps=2.0)
+                print(f"    Crop jitter: mean={jitter_info.get('mean_jitter_px')}px, max={jitter_info.get('max_jitter_px')}px, stability={jitter_info.get('stability_score_pct')}% ({jitter_info.get('quality_rating')})")
+
                 # Safe margin analysis:
                 headline_y_bottom = 240 + 70  # Headline centered at 240 with ~70px height
                 subtitles_y_top = 1920 - 460 - 100  # Margin_v=460 with ~100px text box
@@ -261,7 +274,7 @@ def main():
                     failures.append(f"Pix fmt not yuv420p: {ffprobe_info.get('pix_fmt')}")
                 if not ffprobe_info.get("has_audio"):
                     failures.append("Missing audio stream")
-                if abs(loudness_info.get("target_diff", 0.0) or 0.0) > 2.0:
+                if abs(loudness_info.get("target_diff_lu", 0.0) or 0.0) > 2.0:
                     failures.append(f"Loudness deviation > 2.0 LUFS: {loudness_info.get('integrated_lufs')}")
 
                 audit_results.append({
@@ -273,12 +286,15 @@ def main():
                     "audio_codec": ffprobe_info.get("audio_codec"),
                     "duration_s": ffprobe_info.get("duration"),
                     "loudness_lufs": loudness_info.get("integrated_lufs"),
-                    "lra_lu": loudness_info.get("lra"),
+                    "lra_lu": loudness_info.get("lra_lu"),
                     "true_peak_dbfs": loudness_info.get("true_peak_dbfs"),
                     "avg_caption_drift_ms": drift_info.get("avg_drift_ms"),
                     "max_caption_drift_ms": drift_info.get("max_drift_ms"),
+                    "p95_caption_drift_ms": drift_info.get("p95_drift_ms"),
+                    "crop_jitter_px": f"{jitter_info.get('mean_jitter_px')} px",
+                    "crop_stability_score": f"{jitter_info.get('stability_score_pct')}%",
+                    "crop_quality": jitter_info.get("quality_rating"),
                     "detected_layout": layout,
-                    "crop_jitter": "Low (EMA alpha=0.15 smoothed)" if layout in ["single_face", "split_screen"] else "N/A (Blur Fallback)",
                     "caption_overlap": "None (1050px safe clearance)" if not caption_overlap else "COLLISION DETECTED",
                     "zoom_smoothness": zoom_smoothness,
                     "failures": failures if failures else ["None"]
