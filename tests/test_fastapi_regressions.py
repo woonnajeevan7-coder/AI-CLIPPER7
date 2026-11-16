@@ -212,3 +212,41 @@ def test_jwt_secret_key_unset_fails_startup(monkeypatch):
     assert "JWT_SECRET_KEY=${JWT_SECRET_KEY}" in dc_text
 
 
+def test_tasks_uses_source_url_not_project_title(monkeypatch):
+    from backend.tasks import process_pipeline_task
+    from agents.orchestrator import ClipperOrchestratorAgent
+
+    user = create_test_user(f"task_user_{uuid.uuid4().hex[:8]}@example.com")
+    db = SessionLocal()
+    proj = Project(
+        user_id=user.id,
+        title="My Epic Podcast Episode 42",
+        source_type="upload",
+        source_url="temp_media/actual_uploaded_video.mp4",
+        status="pending"
+    )
+    db.add(proj)
+    db.commit()
+    db.refresh(proj)
+    proj_id = proj.id
+    db.close()
+
+    captured_args = {}
+
+    def mock_run_pipeline(self, source, is_url=True, num_clips=3, **kwargs):
+        captured_args["source"] = source
+        captured_args["is_url"] = is_url
+        yield {"agent": "mock", "status": "done", "progress": 100, "result": []}
+
+    monkeypatch.setattr(ClipperOrchestratorAgent, "run_pipeline", mock_run_pipeline)
+
+    # Run the pipeline task synchronously
+    res = process_pipeline_task(proj_id)
+    assert res["status"] == "success"
+    # Ensure source was actual_uploaded_video.mp4 and NOT project.title
+    assert captured_args["source"] == "temp_media/actual_uploaded_video.mp4"
+    assert captured_args["source"] != "My Epic Podcast Episode 42"
+    assert captured_args["is_url"] is False
+
+
+

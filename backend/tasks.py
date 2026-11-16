@@ -73,8 +73,12 @@ def process_pipeline_task(self, project_id: str):
             return {"status": "already_completed", "clip_count": len(existing_clips)}
 
         is_url = (project.source_type == "youtube")
+        source = project.source_url
+        if not source:
+            raise ValueError(f"Project '{project.id}' has no valid source_url or file path.")
+
         generator = orchestrator.run_pipeline(
-            source=project.source_url if is_url else project.title,
+            source=source,
             is_url=is_url,
             num_clips=3
         )
