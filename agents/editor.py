@@ -5,10 +5,11 @@ punch-in zooms, viral headline banners, karaoke ASS subtitles with keyword emoji
 silence trimming, optional background music with ducking, and EBU R128 loudness normalization.
 """
 
+import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 from schema import CropPlan
 
@@ -19,6 +20,67 @@ class VideoEditorAgent:
     def __init__(self, ffmpeg_bin: Path, fonts_dir: Path):
         self.ffmpeg_bin = ffmpeg_bin
         self.fonts_dir = fonts_dir
+        self._nvenc_available: Optional[bool] = None
+
+    def check_nvenc_available(self) -> bool:
+        """Probe and cache whether NVIDIA NVENC hardware acceleration is available."""
+        if self._nvenc_available is not None:
+            return self._nvenc_available
+
+        try:
+            cmd = [
+                str(self.ffmpeg_bin),
+                "-f", "lavfi",
+                "-i", "color=c=black:s=256x256:d=0.04",
+                "-c:v", "h264_nvenc",
+                "-f", "null",
+                "-"
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            self._nvenc_available = (res.returncode == 0)
+        except Exception:
+            self._nvenc_available = False
+
+        return self._nvenc_available
+
+    def probe_loudnorm(
+        self,
+        source_video_path: Path,
+        start_seconds: float,
+        duration: float
+    ) -> Optional[Dict[str, str]]:
+        """
+        Pass 1: Fast pre-flight loudness probe on source segment.
+        Parses JSON block from stderr for input_i, input_tp, input_lra, input_thresh, target_offset.
+        """
+        try:
+            cmd = [
+                str(self.ffmpeg_bin),
+                "-ss", f"{start_seconds:.3f}",
+                "-i", str(source_video_path),
+                "-t", f"{duration:.3f}",
+                "-vn",
+                "-af", "loudnorm=I=-14:LRA=11:TP=-1.5:print_format=json",
+                "-f", "null",
+                "-"
+            ]
+            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            output = res.stderr
+
+            match = re.search(r"\{\s*\"input_i\"[\s\S]*?\}", output)
+            if match:
+                data = json.loads(match.group(0))
+                return {
+                    "input_i": str(data.get("input_i", "-14.0")),
+                    "input_tp": str(data.get("input_tp", "-1.5")),
+                    "input_lra": str(data.get("input_lra", "11.0")),
+                    "input_thresh": str(data.get("input_thresh", "-24.0")),
+                    "target_offset": str(data.get("target_offset", "0.0")),
+                }
+        except Exception as e:
+            print(f"[VideoEditorAgent] Loudness probe notice: {e}")
+
+        return None
 
     def render_short(
         self,
@@ -99,6 +161,10 @@ class VideoEditorAgent:
 
         filter_complex_str = ";".join(filter_chain)
 
+        # Check NVENC hardware availability pre-flight
+        if use_nvenc and not self.check_nvenc_available():
+            use_nvenc = False
+
         # Video encoder selection (NVENC hardware acceleration with libx264 fallback)
         vcodec_args = (
             ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23"]
@@ -106,11 +172,19 @@ class VideoEditorAgent:
             else ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22"]
         )
 
-        # Audio filter construction
+        # Audio filter construction with Two-Pass EBU R128 loudnorm
         audio_filters = []
         if silence_trim:
             audio_filters.append("silenceremove=stop_periods=-1:stop_duration=0.45:stop_threshold=-40dB")
-        audio_filters.append("loudnorm=I=-14:LRA=11:TP=-1.5")
+
+        measured = self.probe_loudnorm(source_video_path, start_seconds, duration)
+        if measured:
+            audio_filters.append(
+                f"loudnorm=I=-14:LRA=11:TP=-1.5:measured_I={measured['input_i']}:measured_TP={measured['input_tp']}:measured_LRA={measured['input_lra']}:measured_thresh={measured['input_thresh']}:offset={measured['target_offset']}:linear=true"
+            )
+        else:
+            audio_filters.append("acompressor=threshold=-21dB:ratio=2.5:attack=15:release=120,loudnorm=I=-14:LRA=11:TP=-1.5")
+
         audio_filter_str = ",".join(audio_filters)
 
         cmd = [
@@ -136,6 +210,7 @@ class VideoEditorAgent:
             "-map", audio_map,
             *vcodec_args,
             "-pix_fmt", "yuv420p",
+            "-r", "60",
         ])
 
         if not has_bgm:

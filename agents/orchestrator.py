@@ -102,11 +102,15 @@ class ClipperOrchestratorAgent:
                         pass
 
         else:
-            save_dest = self.temp_dir / (filename or "uploaded_video.mp4")
-            if uploaded_bytes:
-                with open(save_dest, "wb") as f:
-                    f.write(uploaded_bytes)
-            video_path = save_dest
+            if not uploaded_bytes and Path(source).exists():
+                video_path = Path(source)
+                save_dest = video_path
+            else:
+                save_dest = self.temp_dir / (filename or "uploaded_video.mp4")
+                if uploaded_bytes:
+                    with open(save_dest, "wb") as f:
+                        f.write(uploaded_bytes)
+                video_path = save_dest
 
             audio_dest = self.temp_dir / f"{save_dest.stem}_audio.mp3"
             if self.transcriber.extract_audio(video_path, audio_dest):

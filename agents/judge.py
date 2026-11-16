@@ -119,7 +119,7 @@ Respond ONLY with a valid JSON array of objects with this schema:
         for attempt in range(3):
             try:
                 response = client.chat.completions.create(
-                    model="qwen/qwen-2.5-72b-instruct",
+                    model="qwen/qwen3.8-27b",
                     messages=[
                         {"role": "system", "content": "You are a master viral video judge. Output valid JSON only."},
                         {"role": "user", "content": prompt}

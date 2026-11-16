@@ -32,6 +32,7 @@ from agents import (
     VideoEditorAgent,
     ClipperOrchestratorAgent
 )
+from agents.transcriber import YouTubeTranscriptApi, yt_dlp
 
 # Shared agent instances
 _transcriber = TranscriberAgent(FFMPEG_BIN, TEMP_DIR)
@@ -80,7 +81,12 @@ def analyze_viral_clips(
     max_duration: int = 60
 ) -> List[Dict[str, Any]]:
     curator = ViralCuratorAgent(api_key=api_key, provider=provider)
-    return curator.curate_clips(transcript_text, num_clips, min_duration, max_duration)
+    return curator.curate_clips(
+        transcript_text=transcript_text,
+        num_clips=num_clips,
+        min_duration=min_duration,
+        max_duration=max_duration
+    )
 
 
 def render_916_vertical_clip(

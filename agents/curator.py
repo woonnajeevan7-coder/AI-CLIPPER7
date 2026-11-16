@@ -73,7 +73,7 @@ Timestamped Video Transcript:
                     from groq import Groq
                     client = Groq(api_key=self.api_key)
                     completion = client.chat.completions.create(
-                        model="qwen/qwen-2.5-72b-instruct",
+                        model="qwen/qwen3.8-27b",
                         messages=[
                             {"role": "system", "content": "You are a viral video scout. Respond ONLY with valid JSON."},
                             {"role": "user", "content": prompt}

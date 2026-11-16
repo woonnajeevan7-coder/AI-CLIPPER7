@@ -123,6 +123,8 @@ class SmartFramingAgent:
         total_samples = max(2, int(duration * sample_fps))
         sample_interval = duration / total_samples
 
+        scale_mult = 2.0 if min(width, height) < 480 else 1.0
+
         for i in range(total_samples):
             t_offset = i * sample_interval
             target_time = start_seconds + t_offset
@@ -132,33 +134,43 @@ class SmartFramingAgent:
             if not ret or frame is None:
                 continue
 
+            if scale_mult != 1.0:
+                proc_frame = cv2.resize(frame, (0, 0), fx=scale_mult, fy=scale_mult, interpolation=cv2.INTER_LINEAR)
+            else:
+                proc_frame = frame
+
             faces = []
             if mp_detector:
                 try:
                     import mediapipe as mp
-                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    rgb = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2RGB)
                     mp_img = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
                     detection_result = mp_detector.detect(mp_img)
                     for det in detection_result.detections:
                         bbox = det.bounding_box
-                        x = int(bbox.origin_x)
-                        y = int(bbox.origin_y)
-                        w = int(bbox.width)
-                        h = int(bbox.height)
+                        x = int(bbox.origin_x / scale_mult)
+                        y = int(bbox.origin_y / scale_mult)
+                        w = int(bbox.width / scale_mult)
+                        h = int(bbox.height / scale_mult)
                         cx = x + w // 2
                         cy = y + h // 2
                         faces.append({"x": x, "y": y, "w": w, "h": h, "cx": cx, "cy": cy})
                 except Exception:
                     pass
 
-            elif cascade and not cascade.empty():
+            if not faces and cascade and not cascade.empty():
                 try:
-                    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    detected = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60))
+                    gray = cv2.cvtColor(proc_frame, cv2.COLOR_BGR2GRAY)
+                    min_s = int(15 * scale_mult)
+                    detected = cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=3, minSize=(min_s, min_s))
                     for (x, y, w, h) in detected:
-                        cx = x + w // 2
-                        cy = y + h // 2
-                        faces.append({"x": int(x), "y": int(y), "w": int(w), "h": int(h), "cx": int(cx), "cy": int(cy)})
+                        ox = int(x / scale_mult)
+                        oy = int(y / scale_mult)
+                        ow = int(w / scale_mult)
+                        oh = int(h / scale_mult)
+                        cx = ox + ow // 2
+                        cy = oy + oh // 2
+                        faces.append({"x": ox, "y": oy, "w": ow, "h": oh, "cx": cx, "cy": cy})
                 except Exception:
                     pass
 
@@ -178,7 +190,11 @@ class SmartFramingAgent:
         height: int,
         scene_cuts: List[float]
     ) -> CropPlan:
-        """Computes EMA-smoothed 9:16 crop window centering on the active speaker."""
+        """Computes dual-mode smoothed 9:16 crop window centering on the active speaker:
+        - Stationary mode (displacement < 0.15 * width): Static median crop (zero micro-jitter/head nodding noise).
+        - Dynamic mode (displacement >= 0.15 * width): Deadband hysteresis (25px) with spring-damper easing,
+          resetting immediately at PySceneDetect scene cut boundaries.
+        """
         target_aspect = 9.0 / 16.0
         crop_h = height
         crop_w = int(crop_h * target_aspect)
@@ -186,29 +202,63 @@ class SmartFramingAgent:
             crop_w = width
             crop_h = int(crop_w / target_aspect)
 
-        smoothed_cx = width / 2.0
-        last_t = 0.0
+        all_cx = [r["faces"][0]["cx"] for r in records if r.get("faces")]
+        if not all_cx:
+            final_cx = width / 2.0
+            crop_x = int(np.clip(final_cx - (crop_w / 2.0), 0, width - crop_w))
+            crop_y = int((height - crop_h) / 2.0)
+            return CropPlan(
+                layout="single_face",
+                face_count=0,
+                scene_cuts=scene_cuts,
+                crop_x=crop_x,
+                crop_y=crop_y,
+                crop_w=crop_w,
+                crop_h=crop_h,
+                filter_string=f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y},scale=1080:1920[merged]"
+            )
 
-        cx_list = []
-        for r in records:
-            t = r["time_offset"]
-            faces = r["faces"]
-            
-            # Reset EMA if crossed a scene cut
-            if any(last_t <= cut <= t for cut in scene_cuts):
-                if faces:
-                    smoothed_cx = float(faces[0]["cx"])
-            elif faces:
-                raw_cx = float(faces[0]["cx"])
-                smoothed_cx = self.ema_alpha * raw_cx + (1.0 - self.ema_alpha) * smoothed_cx
+        max_displacement = max(all_cx) - min(all_cx)
+        is_stationary = max_displacement < (0.15 * width)
 
-            last_t = t
-            cx_list.append(smoothed_cx)
+        if is_stationary:
+            # Mode A: Static median crop for stationary speakers (zero micro-jitter)
+            final_cx = float(np.median(all_cx))
+        else:
+            # Mode B: Deadband Hysteresis (25px) + Spring-Damper easing for walking speakers
+            deadband = 25.0
+            tracked_cx = float(all_cx[0])
+            velocity = 0.0
+            last_t = 0.0
+            tracked_positions = []
 
-        final_cx = float(np.median(cx_list)) if cx_list else (width / 2.0)
+            for r in records:
+                t = r["time_offset"]
+                faces = r.get("faces", [])
+
+                # Scene cut boundary: instantaneous filter reset
+                if any(last_t <= cut <= t for cut in scene_cuts):
+                    if faces:
+                        tracked_cx = float(faces[0]["cx"])
+                        velocity = 0.0
+                elif faces:
+                    raw_cx = float(faces[0]["cx"])
+                    delta = raw_cx - tracked_cx
+                    if abs(delta) > deadband:
+                        target_cx = raw_cx - np.sign(delta) * deadband
+                        velocity = 0.65 * velocity + 0.35 * (target_cx - tracked_cx)
+                        tracked_cx += velocity
+                    else:
+                        velocity *= 0.5
+                        tracked_cx += velocity
+
+                last_t = t
+                tracked_positions.append(tracked_cx)
+
+            final_cx = float(np.mean(tracked_positions)) if tracked_positions else float(np.median(all_cx))
+
         crop_x = int(np.clip(final_cx - (crop_w / 2.0), 0, width - crop_w))
         crop_y = int((height - crop_h) / 2.0)
-
         filter_str = f"[0:v]crop={crop_w}:{crop_h}:{crop_x}:{crop_y},scale=1080:1920[merged]"
 
         return CropPlan(
@@ -229,7 +279,7 @@ class SmartFramingAgent:
         height: int,
         scene_cuts: List[float]
     ) -> CropPlan:
-        """Builds a stacked 2-speaker split-screen layout (Top 1080x960, Bottom 1080x960)."""
+        """Builds a stacked 2-speaker split-screen layout (Top 1080x960, Bottom 1080x960) with 4px divider."""
         speaker_a_cx = []
         speaker_b_cx = []
 
@@ -256,7 +306,8 @@ class SmartFramingAgent:
         filter_str = (
             f"[0:v]crop={sub_w}:{sub_h}:{crop_a_x}:{crop_y},scale=1080:960[top];"
             f"[0:v]crop={sub_w}:{sub_h}:{crop_b_x}:{crop_y},scale=1080:960[bottom];"
-            f"[top][bottom]vstack[merged]"
+            f"[top][bottom]vstack[stacked];"
+            f"[stacked]drawbox=y=958:h=4:color=black@0.5:t=fill[merged]"
         )
 
         return CropPlan(
