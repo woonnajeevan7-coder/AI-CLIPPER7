@@ -1,4 +1,9 @@
+'use client';
+
 import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const Hero3DCanvas = dynamic(() => import('./components/Hero3DCanvas'), { ssr: false });
 
 export default function HomePage() {
   const [url, setUrl] = useState('');
@@ -61,9 +66,14 @@ export default function HomePage() {
             Viral Shorts
           </span>
         </h1>
-        <p className="text-slate-400 text-lg md:text-xl text-center max-w-2xl mb-10">
+        <p className="text-slate-400 text-lg md:text-xl text-center max-w-2xl mb-8">
           Autonomous multi-agent curation, word-by-word karaoke subtitles, face tracking, and 2-speaker split screens in seconds.
         </p>
+
+        {/* Interactive 3D Web Experience */}
+        <div className="w-full max-w-3xl mb-10">
+          <Hero3DCanvas />
+        </div>
 
         {/* Input Card */}
         <div className="w-full max-w-3xl bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-2xl backdrop-blur-sm mb-12">

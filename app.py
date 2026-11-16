@@ -5,6 +5,7 @@ Brand Kit Customization, Live Telemetry Stream, and Stripe-Ready Billing.
 """
 
 import streamlit as st
+import streamlit.components.v1 as components
 import os
 import sys
 import re
@@ -47,9 +48,28 @@ if "active_plan" not in st.session_state:
 if "source_video_path" not in st.session_state:
     st.session_state.source_video_path = None
 
-# Custom Styling (Dark-mode first, glassmorphism, responsive cards)
+# Custom Styling (Dark-mode first, glassmorphism, responsive cards, high-contrast)
 st.markdown("""
 <style>
+    /* Global Typography & High-Contrast Enforcement */
+    p, span, label, div.stMarkdown, .stSelectbox label, .stSlider label, .stTextInput label, .stCheckbox label {
+        color: #f1f5f9 !important;
+        font-weight: 500 !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    .stTextInput input, .stTextArea textarea {
+        background-color: #0f172a !important;
+        color: #ffffff !important;
+        border: 1px solid #334155 !important;
+        font-size: 0.95rem !important;
+    }
+    .stTextInput input:focus, .stTextArea textarea:focus {
+        border-color: #a855f7 !important;
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.4) !important;
+    }
     .main-title {
         font-size: 2.6rem;
         font-weight: 800;
@@ -59,28 +79,68 @@ st.markdown("""
         margin-bottom: 0.2rem;
     }
     .sub-title {
-        color: #94a3b8;
+        color: #cbd5e1 !important;
         font-size: 1.05rem;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
     .score-badge {
         display: inline-block;
-        padding: 4px 14px;
+        padding: 5px 14px;
         border-radius: 20px;
         background: #991b1b;
         border: 1px solid #f87171;
-        color: #ffffff;
+        color: #ffffff !important;
         font-weight: 700;
-        font-size: 0.85rem;
+        font-size: 0.88rem;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
     }
     .agent-log {
-        background-color: #0f172a;
-        border-left: 4px solid #8b5cf6;
-        padding: 12px 16px;
-        border-radius: 6px;
-        font-family: monospace;
-        font-size: 0.9rem;
-        margin-bottom: 8px;
+        background: linear-gradient(135deg, #090d16 0%, #151a2e 100%) !important;
+        border-left: 5px solid #a855f7 !important;
+        border-top: 1px solid rgba(168, 85, 247, 0.4) !important;
+        border-right: 1px solid rgba(168, 85, 247, 0.4) !important;
+        border-bottom: 1px solid rgba(168, 85, 247, 0.4) !important;
+        padding: 16px 20px !important;
+        border-radius: 10px !important;
+        font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace !important;
+        font-size: 1.02rem !important;
+        color: #ffffff !important;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(168, 85, 247, 0.3) !important;
+        margin-bottom: 14px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+    .agent-badge {
+        color: #38bdf8 !important;
+        font-weight: 800 !important;
+        background: rgba(56, 189, 248, 0.18) !important;
+        padding: 3px 10px !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(56, 189, 248, 0.4) !important;
+        text-shadow: 0 0 10px rgba(56, 189, 248, 0.5) !important;
+        letter-spacing: 0.03em !important;
+    }
+    .agent-status-msg {
+        color: #f8fafc !important;
+        font-weight: 600 !important;
+        font-size: 1.02rem !important;
+        letter-spacing: 0.01em !important;
+    }
+    .agent-pulse {
+        display: inline-block !important;
+        width: 10px !important;
+        height: 10px !important;
+        min-width: 10px !important;
+        border-radius: 50% !important;
+        background-color: #10b981 !important;
+        box-shadow: 0 0 10px #10b981, 0 0 20px #10b981 !important;
+        animation: pulseAnim 1.4s infinite ease-in-out !important;
+        margin-right: 6px !important;
+    }
+    @keyframes pulseAnim {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.35); opacity: 0.65; }
     }
     .plan-card {
         border: 1px solid #334155;
@@ -89,6 +149,7 @@ st.markdown("""
         background-color: #1e293b;
         text-align: center;
         margin-bottom: 16px;
+        color: #f8fafc !important;
     }
     .word-pill {
         display: inline-block;
@@ -96,7 +157,7 @@ st.markdown("""
         margin: 3px;
         border-radius: 6px;
         background-color: #334155;
-        color: #f8fafc;
+        color: #f8fafc !important;
         font-size: 0.88rem;
     }
     .word-pill-deleted {
@@ -105,7 +166,7 @@ st.markdown("""
         margin: 3px;
         border-radius: 6px;
         background-color: #450a0a;
-        color: #f87171;
+        color: #f87171 !important;
         text-decoration: line-through;
         font-size: 0.88rem;
     }
@@ -124,9 +185,360 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def render_3d_hero_experience():
+    """Renders an interactive 3D WebGL scene showcasing the 9:16 short engine with Three.js."""
+    html_3d = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          overflow: hidden;
+          background: transparent;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          user-select: none;
+        }
+        #container3d {
+          width: 100%;
+          height: 290px;
+          position: relative;
+          border-radius: 16px;
+          overflow: hidden;
+          background: radial-gradient(circle at 50% 50%, rgba(30, 27, 75, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%);
+          border: 1px solid rgba(168, 85, 247, 0.35);
+          box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.7), 0 0 25px rgba(168, 85, 247, 0.2);
+          cursor: grab;
+        }
+        #container3d:active { cursor: grabbing; }
+        .hud-tag {
+          position: absolute;
+          top: 14px;
+          left: 18px;
+          pointer-events: none;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #c084fc;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        }
+        .hud-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 10px #10b981;
+          animation: hudPulse 1.5s infinite;
+        }
+        .stats-badge {
+          position: absolute;
+          bottom: 12px;
+          left: 18px;
+          pointer-events: none;
+          color: #38bdf8;
+          font-size: 11px;
+          font-family: 'JetBrains Mono', monospace;
+          background: rgba(15, 23, 42, 0.85);
+          padding: 4px 10px;
+          border-radius: 6px;
+          border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .hint-badge {
+          position: absolute;
+          bottom: 12px;
+          right: 18px;
+          pointer-events: none;
+          color: #94a3b8;
+          font-size: 11px;
+          font-family: 'JetBrains Mono', monospace;
+          background: rgba(15, 23, 42, 0.85);
+          padding: 4px 10px;
+          border-radius: 6px;
+          border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        @keyframes hudPulse {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.4); opacity: 0.6; }
+        }
+      </style>
+    </head>
+    <body>
+      <div id="container3d">
+        <div class="hud-tag">
+          <div class="hud-dot"></div>
+          <span>3D WebGL Neural Engine · Drag / Tilt Active</span>
+        </div>
+        <div class="stats-badge">1080x1920 60FPS · MediaPipe Face Track · -14 LUFS</div>
+        <div class="hint-badge">Three.js · Click & Drag to Orbit</div>
+      </div>
+      <script>
+        const container = document.getElementById('container3d');
+        const width = container.clientWidth || 800;
+        const height = container.clientHeight || 290;
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        camera.position.set(0, 0, 7.2);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+
+        // 1. Phone Body (9:16 vertical short format)
+        const phoneGeo = new THREE.BoxGeometry(1.5, 2.7, 0.1);
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 920;
+        const ctx = canvas.getContext('2d');
+        const screenTexture = new THREE.CanvasTexture(canvas);
+
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x090d16,
+          metalness: 0.85,
+          roughness: 0.2
+        });
+        const screenMat = new THREE.MeshBasicMaterial({
+          map: screenTexture,
+          transparent: true,
+          opacity: 0.96
+        });
+
+        const materials = [bodyMat, bodyMat, bodyMat, bodyMat, screenMat, bodyMat];
+        const phoneMesh = new THREE.Mesh(phoneGeo, materials);
+        mainGroup.add(phoneMesh);
+
+        // Neon Glowing Edges
+        const edges = new THREE.EdgesGeometry(phoneGeo);
+        const wireMat = new THREE.LineBasicMaterial({
+          color: 0xa855f7,
+          linewidth: 2,
+          transparent: true,
+          opacity: 0.75
+        });
+        const wireframe = new THREE.LineSegments(edges, wireMat);
+        mainGroup.add(wireframe);
+
+        // 2. Neural Particle Sphere
+        const particleCount = 180;
+        const particleGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        const colors = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.acos((Math.random() * 2) - 1);
+          const r = 2.4 + Math.random() * 1.6;
+          positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+          positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+          positions[i * 3 + 2] = r * Math.cos(phi);
+
+          const rnd = Math.random();
+          if (rnd < 0.33) {
+            colors[i * 3] = 0.96; colors[i * 3 + 1] = 0.62; colors[i * 3 + 2] = 0.04;
+          } else if (rnd < 0.66) {
+            colors[i * 3] = 0.66; colors[i * 3 + 1] = 0.33; colors[i * 3 + 2] = 0.97;
+          } else {
+            colors[i * 3] = 0.22; colors[i * 3 + 1] = 0.74; colors[i * 3 + 2] = 0.97;
+          }
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const pMat = new THREE.PointsMaterial({
+          size: 0.055,
+          vertexColors: true,
+          transparent: true,
+          opacity: 0.85,
+          blending: THREE.AdditiveBlending
+        });
+        const particles = new THREE.Points(particleGeo, pMat);
+        mainGroup.add(particles);
+
+        // 3. Orbiting Rings
+        const ringGeo1 = new THREE.TorusGeometry(2.3, 0.012, 16, 90);
+        const ringMat1 = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.5 });
+        const ring1 = new THREE.Mesh(ringGeo1, ringMat1);
+        ring1.rotation.x = Math.PI / 3;
+        mainGroup.add(ring1);
+
+        const ringGeo2 = new THREE.TorusGeometry(2.8, 0.012, 16, 90);
+        const ringMat2 = new THREE.MeshBasicMaterial({ color: 0xf43f5e, transparent: true, opacity: 0.4 });
+        const ring2 = new THREE.Mesh(ringGeo2, ringMat2);
+        ring2.rotation.y = Math.PI / 4;
+        ring2.rotation.x = -Math.PI / 6;
+        mainGroup.add(ring2);
+
+        // Lighting
+        const ambLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambLight);
+
+        const dLight1 = new THREE.DirectionalLight(0xa855f7, 2.2);
+        dLight1.position.set(4, 5, 4);
+        scene.add(dLight1);
+
+        const dLight2 = new THREE.DirectionalLight(0x38bdf8, 1.8);
+        dLight2.position.set(-4, -3, 3);
+        scene.add(dLight2);
+
+        // Interactive Mouse Orbit & Spring Tilting
+        let targetRotX = 0;
+        let targetRotY = 0;
+        let isDragging = false;
+        let prevMouseX = 0;
+        let prevMouseY = 0;
+
+        container.addEventListener('mousemove', (e) => {
+          const rect = container.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+          if (!isDragging) {
+            targetRotY = x * 0.45;
+            targetRotX = -y * 0.35;
+          }
+        });
+
+        container.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          prevMouseX = e.clientX;
+          prevMouseY = e.clientY;
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          const deltaX = e.clientX - prevMouseX;
+          const deltaY = e.clientY - prevMouseY;
+          targetRotY += deltaX * 0.012;
+          targetRotX += deltaY * 0.012;
+          prevMouseX = e.clientX;
+          prevMouseY = e.clientY;
+        });
+
+        // Touch support
+        container.addEventListener('touchstart', (e) => {
+          if (e.touches.length === 1) {
+            isDragging = true;
+            prevMouseX = e.touches[0].clientX;
+            prevMouseY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+          if (!isDragging || e.touches.length !== 1) return;
+          const deltaX = e.touches[0].clientX - prevMouseX;
+          const deltaY = e.touches[0].clientY - prevMouseY;
+          targetRotY += deltaX * 0.012;
+          targetRotX += deltaY * 0.012;
+          prevMouseX = e.touches[0].clientX;
+          prevMouseY = e.touches[0].clientY;
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => { isDragging = false; });
+
+        // Animation Loop
+        let animId;
+        const clock = new THREE.Clock();
+        let running = true;
+
+        document.addEventListener('visibilitychange', () => {
+          running = !document.hidden;
+          if (running) animate();
+        });
+
+        function animate() {
+          if (!running) return;
+          animId = requestAnimationFrame(animate);
+          const t = clock.getElapsedTime();
+
+          mainGroup.rotation.y += (targetRotY - mainGroup.rotation.y) * 0.08;
+          mainGroup.rotation.x += (targetRotX - mainGroup.rotation.x) * 0.08;
+
+          phoneMesh.position.y = Math.sin(t * 1.8) * 0.08;
+          wireframe.position.y = phoneMesh.position.y;
+
+          particles.rotation.y = t * 0.07;
+          particles.rotation.x = t * 0.035;
+          ring1.rotation.z = t * 0.14;
+          ring2.rotation.z = -t * 0.11;
+
+          if (ctx) {
+            ctx.fillStyle = '#060a14';
+            ctx.fillRect(0, 0, 512, 920);
+
+            // Screen Header
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 28px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚡ AI CLIPPER 3D', 256, 95);
+
+            // Dynamic Face Tracker Box
+            const pulse = Math.sin(t * 3.2) * 6;
+            const bX = 146 - pulse / 2;
+            const bY = 230 - pulse / 2;
+            const bW = 220 + pulse;
+            const bH = 220 + pulse;
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(bX, bY, bW, bH);
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 18px monospace';
+            ctx.fillText('SPEAKER 1 [98% CONF]', 256, bY - 14);
+
+            // Dynamic Karaoke Subtitle
+            ctx.font = 'bold 36px sans-serif';
+            ctx.fillStyle = '#facc15';
+            ctx.fillText('VIRAL HOOK', 256, 570);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText('THAT GETS 10M VIEWS', 256, 615);
+
+            // Audio Spectrum Waveform Bars
+            const barCount = 18;
+            const barWidth = 16;
+            const startX = 60;
+            for (let b = 0; b < barCount; b++) {
+              const h = 25 + Math.abs(Math.sin(t * 4 + b * 0.5)) * 95;
+              ctx.fillStyle = b % 2 === 0 ? '#ec4899' : '#8b5cf6';
+              ctx.fillRect(startX + b * 22, 810 - h, barWidth, h);
+            }
+
+            screenTexture.needsUpdate = true;
+          }
+
+          renderer.render(scene, camera);
+        }
+
+        animate();
+
+        window.addEventListener('resize', () => {
+          const newW = container.clientWidth;
+          const newH = container.clientHeight || 290;
+          camera.aspect = newW / newH;
+          camera.updateProjectionMatrix();
+          renderer.setSize(newW, newH);
+        });
+      </script>
+    </body>
+    </html>
+    """
+    components.html(html_3d, height=310, scrolling=False)
+
 # Header
 st.markdown('<h1 class="main-title">🎬 AI Clipper Pro Studio</h1>', unsafe_allow_html=True)
 st.markdown('<p class="sub-title">Enterprise Short-Form Repurposing Engine · Face Tracking · Dynamic Karaoke · Multimodal Curation</p>', unsafe_allow_html=True)
+
+# 3D WebGL Neural Engine Hero Showcase
+render_3d_hero_experience()
 
 DEFAULT_GROQ_KEY = os.getenv("GROQ_API_KEY", "")
 
@@ -277,7 +689,14 @@ with tab_studio:
                     progress = event.get("progress", 0)
                     
                     progress_bar.progress(progress)
-                    agent_log_area.markdown(f"<div role='log' aria-live='polite' aria-label='Autonomous pipeline telemetry' class='agent-log'>🤖 <b>[{agent}]</b> {status_text}</div>", unsafe_allow_html=True)
+                    agent_log_area.markdown(
+                        f"<div role='log' aria-live='polite' aria-label='Autonomous pipeline telemetry' class='agent-log'>"
+                        f"<span class='agent-pulse'></span>"
+                        f"🤖 <span class='agent-badge'>[{agent}]</span> "
+                        f"<span class='agent-status-msg'>{status_text}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
                     
                     if "result" in event:
                         st.session_state.rendered_clips = event["result"]
