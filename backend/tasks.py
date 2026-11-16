@@ -60,7 +60,11 @@ def process_pipeline_task(self, project_id: str):
         db.commit()
 
     project_root = Path(__file__).parent.parent
-    orchestrator = ClipperOrchestratorAgent(project_root=project_root)
+    orchestrator = ClipperOrchestratorAgent(
+        project_root=project_root,
+        api_key=settings.GROQ_API_KEY,
+        provider="groq"
+    )
 
     try:
         # Check if project was already completed (idempotency check)

@@ -249,4 +249,47 @@ def test_tasks_uses_source_url_not_project_title(monkeypatch):
     assert captured_args["is_url"] is False
 
 
+def test_groq_api_key_passed_from_settings_to_orchestrator(monkeypatch):
+    from backend.tasks import process_pipeline_task
+    from agents.orchestrator import ClipperOrchestratorAgent
+
+    user = create_test_user(f"groq_user_{uuid.uuid4().hex[:8]}@example.com")
+    db = SessionLocal()
+    proj = Project(
+        user_id=user.id,
+        title="Groq Key Pipeline Test",
+        source_type="youtube",
+        source_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        status="pending"
+    )
+    db.add(proj)
+    db.commit()
+    db.refresh(proj)
+    proj_id = proj.id
+    db.close()
+
+    mock_key = "gsk_test_pipeline_secret_key_99999"
+    monkeypatch.setattr(settings, "GROQ_API_KEY", mock_key)
+
+    captured_init = {}
+    original_init = ClipperOrchestratorAgent.__init__
+
+    def mock_init(self, project_root, api_key=None, provider="groq", **kwargs):
+        captured_init["api_key"] = api_key
+        captured_init["provider"] = provider
+        original_init(self, project_root, api_key=api_key, provider=provider, **kwargs)
+
+    def mock_run_pipeline(self, *args, **kwargs):
+        yield {"agent": "mock", "status": "done", "progress": 100, "result": []}
+
+    monkeypatch.setattr(ClipperOrchestratorAgent, "__init__", mock_init)
+    monkeypatch.setattr(ClipperOrchestratorAgent, "run_pipeline", mock_run_pipeline)
+
+    res = process_pipeline_task(proj_id)
+    assert res["status"] == "success"
+    assert captured_init["api_key"] == mock_key
+    assert captured_init["provider"] == "groq"
+
+
+
 

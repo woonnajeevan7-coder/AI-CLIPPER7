@@ -21,6 +21,9 @@ class Settings:
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     JWT_SECRET_KEY: str
 
+    # Groq Engine Brain
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+
     def __init__(self):
         jwt_key = os.getenv("JWT_SECRET_KEY")
         if not jwt_key:
