@@ -7,6 +7,7 @@ and 2-speaker split-screen layouts with blurred background fallback.
 
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
+import re
 import cv2
 import numpy as np
 
@@ -16,18 +17,73 @@ from schema import CropPlan
 class SmartFramingAgent:
     """Agent responsible for intelligent 9:16 framing, face tracking, and split-screen composition."""
 
+    GAMING_KEYWORDS = [
+        "gameplay", "gaming", "stream", "streamer", "clutch", "esports",
+        "fortnite", "valorant", "gta", "fifa", "minecraft", "pubg", "apex",
+        "warzone", "cod", "fps", "respawn", "killstreak", "headshot"
+    ]
+
+    SPORTS_KEYWORDS = [
+        "cricket", "ipl", "t10", "t20", "wicket", "bowler", "batsman",
+        "yorker", "over", "six", "innings", "pitch", "stadium", "boundary",
+        "football", "soccer", "penalty", "touchdown", "nba", "basketball"
+    ]
+
+    @classmethod
+    def detect_genre_and_framing(
+        cls,
+        text: str,
+        explicit_framing_mode: Optional[str] = None
+    ) -> Tuple[str, List[str]]:
+        """
+        Detects genre using word-boundary regex requiring >= 3 distinct keyword hits,
+        while allowing explicit framing_mode from the UI to override.
+        Returns (effective_mode, matched_keywords).
+        """
+        if explicit_framing_mode and explicit_framing_mode.lower() not in ("auto", "none", ""):
+            return explicit_framing_mode.lower(), []
+
+        text = text or ""
+        matched_gaming = [kw for kw in cls.GAMING_KEYWORDS if re.search(rf"\b{re.escape(kw)}\b", text, re.IGNORECASE)]
+        matched_sports = [kw for kw in cls.SPORTS_KEYWORDS if re.search(rf"\b{re.escape(kw)}\b", text, re.IGNORECASE)]
+        all_matched = sorted(list(set(matched_gaming + matched_sports)))
+
+        if len(all_matched) >= 3:
+            if len(matched_gaming) > len(matched_sports):
+                return "gaming", all_matched
+            else:
+                return "sports_gaming", all_matched
+
+        return "auto", all_matched
+
     def __init__(self, ema_alpha: float = 0.15, models_dir: Optional[Path] = None):
         self.ema_alpha = ema_alpha
         self.models_dir = models_dir or (Path(__file__).parent.parent / "models")
         self.mp_model_path = self.models_dir / "blaze_face_short_range.tflite"
         self.cascade_path = self.models_dir / "haarcascade_frontalface_default.xml"
 
+    def calculate_crop_plan(
+        self,
+        video_path: Path,
+        start_time: float = 0.0,
+        duration: float = 30.0,
+        mode: str = "auto"
+    ) -> CropPlan:
+        """Convenience alias for analyze_framing."""
+        return self.analyze_framing(
+            video_path=video_path,
+            start_seconds=start_time,
+            end_seconds=start_time + duration,
+            mode=mode
+        )
+
     def analyze_framing(
         self,
         video_path: Path,
         start_seconds: float,
         end_seconds: float,
-        mode: str = "auto"
+        mode: str = "auto",
+        sample_stride: Optional[int] = None
     ) -> CropPlan:
         """
         Detects scene cuts, samples frames, tracks faces, and generates the optimal 9:16 crop plan.
@@ -37,6 +93,7 @@ class SmartFramingAgent:
         - 'split_screen': 2-speaker vertical split-screen.
         - 'single_face': Active speaker face tracking.
         - 'auto': Dynamic face tracking if faces exist, defaulting to clean 9:16 action crop for widescreen content.
+        - sample_stride: when specified (e.g. 10), samples every Nth frame for cheap live processing with EMA smoothing.
         """
         duration = max(1.0, end_seconds - start_seconds)
         
@@ -45,14 +102,22 @@ class SmartFramingAgent:
 
         # 2. Sample frames and detect faces
         face_records, width, height = self._sample_and_detect_faces(
-            video_path, start_seconds, duration, sample_fps=2.0
+            video_path, start_seconds, duration, sample_fps=2.0, sample_stride=sample_stride
         )
 
         if width <= 0 or height <= 0:
             width, height = 1920, 1080
 
-        # Dedicated sports & gaming action-crop mode
-        if mode in ("sports_gaming", "action_crop", "cricket", "gaming"):
+        # Dedicated gaming mode: webcam face on top (1080x640) + gameplay crop below (1080x1280)
+        # Fall back to action crop when no webcam face
+        if mode == "gaming":
+            has_webcam_face = any(len(r.get("faces", [])) > 0 for r in face_records)
+            if has_webcam_face:
+                return self._build_gaming_layout_plan(face_records, width, height, scene_cuts)
+            return self._build_action_crop_plan(width, height, scene_cuts)
+
+        # Dedicated sports & action-crop mode
+        if mode in ("sports_gaming", "action_crop", "cricket"):
             return self._build_action_crop_plan(width, height, scene_cuts)
 
         if not face_records:
@@ -110,7 +175,8 @@ class SmartFramingAgent:
         video_path: Path,
         start_seconds: float,
         duration: float,
-        sample_fps: float = 2.0
+        sample_fps: float = 2.0,
+        sample_stride: Optional[int] = None
     ) -> Tuple[List[Dict[str, Any]], int, int]:
         """Samples frames across the duration and runs face detection."""
         records: List[Dict[str, Any]] = []
@@ -146,15 +212,22 @@ class SmartFramingAgent:
                 cascade = None
 
         try:
-            total_samples = max(2, int(duration * sample_fps))
-            sample_interval = duration / total_samples
+            if sample_stride is not None and sample_stride > 0:
+                total_samples = max(2, int((duration * fps) / float(sample_stride)))
+                sample_interval = float(sample_stride) / fps
+            else:
+                total_samples = max(2, int(duration * sample_fps))
+                sample_interval = duration / total_samples
 
             scale_mult = 2.0 if min(width, height) < 480 else 1.0
 
             for i in range(total_samples):
                 t_offset = i * sample_interval
-                target_time = start_seconds + t_offset
-                target_frame = int(target_time * fps)
+                if sample_stride is not None and sample_stride > 0:
+                    target_frame = int(start_seconds * fps) + (i * sample_stride)
+                else:
+                    target_time = start_seconds + t_offset
+                    target_frame = int(target_time * fps)
                 cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
                 ret, frame = cap.read()
                 if not ret or frame is None:
@@ -410,6 +483,69 @@ class SmartFramingAgent:
             crop_h=sub_h,
             split_top_x=crop_a_x,
             split_bottom_x=crop_b_x,
+            filter_string=filter_str
+        )
+
+    def _build_gaming_layout_plan(
+        self,
+        face_records: List[Dict[str, Any]],
+        width: int,
+        height: int,
+        scene_cuts: List[float]
+    ) -> CropPlan:
+        """
+        Builds a stacked gaming layout:
+        - Top: Webcam face crop (1080x640)
+        - Bottom: Gameplay crop (1080x1280)
+        Total resolution: 1080x1920 with a 4px black divider at y=638.
+        """
+        face_cxs = [f["cx"] for r in face_records for f in r.get("faces", [])]
+        face_cys = [f["cy"] for r in face_records for f in r.get("faces", [])]
+        face_ws = [f["w"] for r in face_records for f in r.get("faces", [])]
+        face_hs = [f["h"] for r in face_records for f in r.get("faces", [])]
+
+        med_cx = float(np.median(face_cxs)) if face_cxs else (width * 0.2)
+        med_cy = float(np.median(face_cys)) if face_cys else (height * 0.25)
+        avg_h = float(np.mean(face_hs)) if face_hs else (height * 0.25)
+
+        # 1. Top webcam crop (1080x640, aspect ratio 27:16 = 1.6875)
+        target_cam_aspect = 27.0 / 16.0
+        cam_h = int(min(height, max(avg_h * 2.2, height * 0.35)))
+        cam_w = int(cam_h * target_cam_aspect)
+        if cam_w > width:
+            cam_w = width
+            cam_h = int(cam_w / target_cam_aspect)
+
+        cam_x = int(np.clip(med_cx - (cam_w / 2.0), 0, max(0, width - cam_w)))
+        cam_y = int(np.clip(med_cy - (cam_h / 2.0), 0, max(0, height - cam_h)))
+
+        # 2. Bottom gameplay crop (1080x1280, aspect ratio 27:32 = 0.84375)
+        target_game_aspect = 27.0 / 32.0
+        game_h = height
+        game_w = int(game_h * target_game_aspect)
+        if game_w > width:
+            game_w = width
+            game_h = int(game_w / target_game_aspect)
+
+        game_x = int(np.clip((width - game_w) / 2.0, 0, max(0, width - game_w)))
+        game_y = int(max(0, (height - game_h) / 2.0))
+
+        # 3. Stack filters: 1080x640 (top) + 1080x1280 (bottom) = 1080x1920
+        filter_str = (
+            f"[0:v]crop={cam_w}:{cam_h}:{cam_x}:{cam_y},scale=1080:640[webcam_top];"
+            f"[0:v]crop={game_w}:{game_h}:{game_x}:{game_y},scale=1080:1280[gameplay_bottom];"
+            f"[webcam_top][gameplay_bottom]vstack[stacked];"
+            f"[stacked]drawbox=y=638:h=4:color=black@0.6:t=fill[merged]"
+        )
+
+        return CropPlan(
+            layout="gaming",
+            face_count=len(face_cxs),
+            scene_cuts=scene_cuts,
+            crop_w=1080,
+            crop_h=1920,
+            split_top_x=cam_x,
+            split_bottom_x=game_x,
             filter_string=filter_str
         )
 

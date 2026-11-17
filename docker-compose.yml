@@ -80,6 +80,19 @@ services:
       - ./temp_media:/app/temp_media
       - ./output_clips:/app/output_clips
 
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: ai_clipper_mediamtx
+    restart: unless-stopped
+    ports:
+      - "1935:1935" # RTMP default ingest (OBS publishing)
+      - "8554:8554" # RTSP
+      - "8888:8888" # HLS
+      - "8889:8889" # WebRTC
+    environment:
+      - MTX_PROTOCOLS=tcp
+      - MTX_RTMP=yes
+
 volumes:
   postgres_data:
   redis_data:

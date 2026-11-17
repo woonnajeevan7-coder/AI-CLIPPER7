@@ -29,6 +29,13 @@ class Settings:
     TWITCH_EVENTSUB_SECRET: str = os.getenv("TWITCH_EVENTSUB_SECRET", "default_test_eventsub_secret_32b")
     TWITCH_WEBHOOK_CALLBACK_URL: str = os.getenv("TWITCH_WEBHOOK_CALLBACK_URL", "")
 
+    # Live Streaming & Ingest Settings
+    LIVE_ENABLED: bool = os.getenv("LIVE_ENABLED", "true").lower() in ("true", "1", "yes")
+    RTMP_BASE_URL: str = os.getenv("RTMP_BASE_URL", "rtmp://localhost:1935/live")
+    LIVE_SEGMENT_DURATION_SECONDS: float = float(os.getenv("LIVE_SEGMENT_DURATION_SECONDS", "6.0"))
+    LIVE_ROLLING_BUFFER_MINUTES: int = int(os.getenv("LIVE_ROLLING_BUFFER_MINUTES", "15"))
+    MIN_DISK_FREE_GB: float = float(os.getenv("MIN_DISK_FREE_GB", "5.0"))
+
     # Groq Engine Brain
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 
@@ -61,6 +68,7 @@ class Settings:
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", REDIS_URL)
     CELERY_RESULT_BACKEND: str = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
+    CELERY_CONCURRENCY: int = int(os.getenv("CELERY_CONCURRENCY", "3"))
 
     # Cloudflare R2 / S3 Storage
     R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "mock_r2_account")

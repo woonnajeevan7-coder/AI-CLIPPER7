@@ -4,7 +4,7 @@ Aligns clip boundaries to natural sentence starts, question pauses, and vocal si
 Ensures zero mid-word cuts and complete narrative thoughts.
 """
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from schema import WordTimestamp
 
 
@@ -117,3 +117,99 @@ class BoundarySnapper:
                     break
 
         return round(snapped_start, 3), round(snapped_end, 3)
+
+    @classmethod
+    def snap_to_silence(
+        cls,
+        raw_start: float,
+        raw_end: float,
+        silences: Optional[List[Tuple[float, float]]] = None,
+        words: Optional[List[WordTimestamp]] = None,
+        max_delta: float = 3.0,
+        min_duration: Optional[float] = None,
+        max_duration: Optional[float] = None,
+        prev_clip_end: Optional[float] = None,
+    ) -> Tuple[float, float]:
+        """
+        Snaps raw_start and raw_end to the nearest silence pause within +/- max_delta (default 3s).
+        Enforces:
+        1. No overlap: snapped_start >= prev_clip_end
+        2. Clamped duration: between (interval - max_delta) and (interval + max_delta)
+        """
+        interval = raw_end - raw_start
+        min_dur = min_duration if min_duration is not None else max(1.0, interval - max_delta)
+        max_dur = max_duration if max_duration is not None else (interval + max_delta)
+
+        # Lower bound for start: must not overlap previous clip
+        min_start_bound = prev_clip_end if prev_clip_end is not None else 0.0
+
+        # Start snapping
+        snapped_start = raw_start
+        if silences:
+            start_candidates = [
+                (s, e) for (s, e) in silences
+                if (s <= raw_start + max_delta and e >= raw_start - max_delta)
+            ]
+            valid_points = []
+            for s, e in start_candidates:
+                pt = round((s + e) / 2.0, 2)
+                if pt >= min_start_bound:
+                    valid_points.append(pt)
+                elif e >= min_start_bound:
+                    valid_points.append(round(e, 2))
+
+            if valid_points:
+                snapped_start = min(valid_points, key=lambda p: abs(p - raw_start))
+
+        elif words:
+            pauses = []
+            for i in range(len(words) - 1):
+                p_start = words[i].end
+                p_end = words[i + 1].start
+                if p_end - p_start >= 0.25 and (p_start <= raw_start + max_delta and p_end >= raw_start - max_delta):
+                    pt = round((p_start + p_end) / 2.0, 2)
+                    if pt >= min_start_bound:
+                        pauses.append(pt)
+            if pauses:
+                snapped_start = min(pauses, key=lambda p: abs(p - raw_start))
+
+        # Guarantee no overlap with previous clip
+        if snapped_start < min_start_bound:
+            snapped_start = min_start_bound
+
+        # End snapping
+        snapped_end = raw_end
+        if silences:
+            end_candidates = [
+                (s, e) for (s, e) in silences
+                if (s <= raw_end + max_delta and e >= raw_end - max_delta)
+            ]
+            valid_end_points = []
+            for s, e in end_candidates:
+                pt = round((s + e) / 2.0, 2)
+                if pt > snapped_start:
+                    valid_end_points.append(pt)
+                elif s > snapped_start:
+                    valid_end_points.append(round(s, 2))
+            if valid_end_points:
+                snapped_end = min(valid_end_points, key=lambda p: abs(p - raw_end))
+        elif words:
+            pauses = []
+            for i in range(len(words) - 1):
+                p_start = words[i].end
+                p_end = words[i + 1].start
+                if p_end - p_start >= 0.25 and (p_start <= raw_end + max_delta and p_end >= raw_end - max_delta):
+                    pt = round((p_start + p_end) / 2.0, 2)
+                    if pt > snapped_start:
+                        pauses.append(pt)
+            if pauses:
+                snapped_end = min(pauses, key=lambda p: abs(p - raw_end))
+
+        # Clamp duration to interval +/- max_delta
+        current_dur = snapped_end - snapped_start
+        if current_dur < min_dur:
+            snapped_end = snapped_start + min_dur
+        elif current_dur > max_dur:
+            snapped_end = snapped_start + max_dur
+
+        return round(snapped_start, 2), round(snapped_end, 2)

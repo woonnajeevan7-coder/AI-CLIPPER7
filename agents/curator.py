@@ -92,6 +92,27 @@ class ViralCuratorAgent:
 
         return chunks
 
+    def propose_candidates(
+        self,
+        words: Optional[List[WordTimestamp]] = None,
+        transcript_text: Optional[str] = None,
+        audio_signals: Optional[AudioSignals] = None,
+        top_n: int = 5,
+        min_duration: int = 25,
+        max_duration: int = 60
+    ) -> List[CandidateClip]:
+        """Proposes viral candidate clips from words or transcript text using multimodal audio signals."""
+        if not transcript_text and words:
+            from .transcriber import TranscriberAgent
+            transcript_text = TranscriberAgent.words_to_transcript_text(words)
+        return self.generate_candidates(
+            transcript_text=transcript_text or "",
+            audio_signals=audio_signals,
+            target_candidates=top_n,
+            min_duration=min_duration,
+            max_duration=max_duration
+        )
+
     def generate_candidates(
         self,
         transcript_text: str,

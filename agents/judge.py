@@ -10,7 +10,7 @@ import re
 from typing import List, Dict, Any, Optional
 from pydantic import ValidationError
 
-from schema import CandidateClip, RubricScore, HeadlineVariants, ClipMetadata, AudioSignals
+from schema import CandidateClip, RubricScore, HeadlineVariants, ClipMetadata, AudioSignals, WordTimestamp
 
 
 class JudgeAgent:
@@ -74,6 +74,27 @@ class JudgeAgent:
 
         extracted = " ".join(matching_lines)
         return extracted[:3000] if extracted else transcript_context[:800]
+
+    def evaluate_candidates(
+        self,
+        candidates: List[CandidateClip],
+        transcript_words: Optional[List[WordTimestamp]] = None,
+        transcript_context: Optional[str] = None,
+        audio_signals: Optional[AudioSignals] = None,
+        top_n: int = 3,
+        threshold: Optional[int] = None
+    ) -> List[ClipMetadata]:
+        """Evaluates and ranks candidate clips against the 4-factor virality rubric."""
+        if not transcript_context and transcript_words:
+            from .transcriber import TranscriberAgent
+            transcript_context = TranscriberAgent.words_to_transcript_text(transcript_words)
+        return self.evaluate_and_rank(
+            candidates=candidates,
+            transcript_context=transcript_context or "",
+            audio_signals=audio_signals,
+            top_n=top_n,
+            min_score=threshold
+        )
 
     def evaluate_and_rank(
         self,

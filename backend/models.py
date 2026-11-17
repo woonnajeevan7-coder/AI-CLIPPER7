@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy import (
-    Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON
+    Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Text, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -88,11 +88,16 @@ class Transcript(Base):
 
 class Clip(Base):
     __tablename__ = "clips"
+    __table_args__ = (
+        UniqueConstraint("live_session_id", "clip_index", name="uq_clips_session_clip_index"),
+    )
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True)
     live_session_id = Column(String(36), ForeignKey("live_sessions.id", ondelete="CASCADE"), nullable=True, index=True)
+    clip_index = Column(Integer, nullable=True, index=True)
     source = Column(String(50), default="fixed", nullable=False)  # 'fixed' | 'highlight'
+    status = Column(String(50), default="completed", nullable=False)  # 'raw', 'processing', 'completed', 'failed'
     title = Column(String(255), nullable=False)
     headline = Column(String(255), nullable=False)
     start_seconds = Column(Float, nullable=False)
@@ -106,11 +111,28 @@ class Clip(Base):
     headline_variants_json = Column(JSON, nullable=True)
     video_url = Column(Text, nullable=True)
     r2_key = Column(String(255), nullable=True)
+    error = Column(Text, nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
     project = relationship("Project", back_populates="clips")
     live_session = relationship("LiveSession", back_populates="clips")
     metrics = relationship("ClipMetric", back_populates="clip", cascade="all, delete-orphan")
+
+    @property
+    def session_id(self):
+        return self.live_session_id
+
+    @session_id.setter
+    def session_id(self, val):
+        self.live_session_id = val
+
+    @property
+    def index(self):
+        return self.clip_index
+
+    @index.setter
+    def index(self, val):
+        self.clip_index = val
 
 
 class Plan(Base):
@@ -210,16 +232,40 @@ class LiveSession(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     broadcaster_id = Column(String(100), nullable=True, index=True)
+    stream_key = Column(String(100), unique=True, index=True, nullable=True)
+    source_type = Column(String(50), default="rtmp", nullable=False)  # 'rtmp', 'streamlink', 'hls'
     title = Column(String(255), nullable=False)
-    stream_url = Column(Text, nullable=False)
+    stream_url = Column(Text, nullable=True, default="")
     platform = Column(String(50), default="twitch", nullable=False)
     status = Column(String(50), default="starting", nullable=False)  # 'starting', 'live', 'stopping', 'stopped', 'failed'
     rights_confirmed = Column(Boolean, default=False, nullable=False)
     target_framing = Column(String(50), default="sports_gaming")
     caption_style = Column(String(50), default="sports_gaming")
+    rolling_buffer_minutes = Column(Integer, default=15, nullable=False)
+    total_segments_recorded = Column(Integer, default=0, nullable=False)
+    error = Column(Text, nullable=True)
     started_at = Column(DateTime, nullable=True)
     stopped_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
     user = relationship("User", back_populates="live_sessions")
+    segments = relationship("LiveSegment", back_populates="session", cascade="all, delete-orphan", order_by="LiveSegment.segment_index")
     clips = relationship("Clip", back_populates="live_session", cascade="all, delete-orphan")
+
+
+class LiveSegment(Base):
+    __tablename__ = "live_segments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    session_id = Column(String(36), ForeignKey("live_sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    segment_index = Column(Integer, nullable=False, index=True)
+    file_path = Column(Text, nullable=False)
+    storage_key = Column(String(255), nullable=True)
+    start_seconds = Column(Float, nullable=False)  # One clock: segment_index * 6.0
+    end_seconds = Column(Float, nullable=False)    # (segment_index + 1) * 6.0
+    duration = Column(Float, default=6.0, nullable=False)
+    status = Column(String(50), default="recorded", nullable=False)  # 'recorded', 'transcribed', 'curated', 'failed'
+    words_json = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    session = relationship("LiveSession", back_populates="segments")

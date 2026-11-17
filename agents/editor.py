@@ -7,6 +7,7 @@ silence trimming, optional background music with ducking, and EBU R128 loudness 
 
 import json
 import re
+import uuid
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
@@ -14,12 +15,59 @@ from typing import Optional, Dict, List, Tuple
 from schema import CropPlan
 
 
+def select_script_aware_font(text: str, fonts_dir: Path) -> Path:
+    """
+    Selects the optimal font file based on detected Unicode script in text:
+    - Indic (Devanagari, Tamil, Telugu, etc.): Nirmala.ttc / Nirmala.ttf
+    - CJK (Chinese, Japanese, Korean): malgun.ttf / msyh.ttc / SimHei.ttf
+    - Arabic / Hebrew: segoeui.ttf / arial.ttf
+    - Latin / Default: Montserrat-Bold.ttf from fonts_dir
+    """
+    # 1. Indic scripts (Devanagari \u0900-\u097F, Bengali \u0980-\u09FF, Gurmukhi \u0A00-\u0A7F,
+    # Gujarati \u0A80-\u0AFF, Oriya \u0B00-\u0B7F, Tamil \u0B80-\u0BFF, Telugu \u0C00-\u0C7F,
+    # Kannada \u0C80-\u0CFF, Malayalam \u0D00-\u0D7F)
+    has_indic = any('\u0900' <= ch <= '\u0D7F' for ch in text)
+    if has_indic:
+        for cand in [Path("C:/Windows/Fonts/Nirmala.ttc"), Path("C:/Windows/Fonts/NirmalaB.ttf"), fonts_dir / "Nirmala.ttf", Path("C:/Windows/Fonts/arial.ttf")]:
+            if cand.exists():
+                return cand
+
+    # 2. CJK scripts (Hiragana, Katakana, CJK Unified Ideographs, Hangul)
+    has_cjk = any(
+        ('\u4E00' <= ch <= '\u9FFF') or
+        ('\u3040' <= ch <= '\u309F') or
+        ('\u30A0' <= ch <= '\u30FF') or
+        ('\uAC00' <= ch <= '\uD7AF')
+        for ch in text
+    )
+    if has_cjk:
+        for cand in [Path("C:/Windows/Fonts/malgun.ttf"), Path("C:/Windows/Fonts/malgunbd.ttf"), Path("C:/Windows/Fonts/msyh.ttc"), Path("C:/Windows/Fonts/SimHei.ttf"), Path("C:/Windows/Fonts/arial.ttf")]:
+            if cand.exists():
+                return cand
+
+    # 3. Arabic / Hebrew
+    has_rtl = any(('\u0590' <= ch <= '\u05FF') or ('\u0600' <= ch <= '\u06FF') for ch in text)
+    if has_rtl:
+        for cand in [Path("C:/Windows/Fonts/segoeui.ttf"), Path("C:/Windows/Fonts/arial.ttf")]:
+            if cand.exists():
+                return cand
+
+    default_font = fonts_dir / "Montserrat-Bold.ttf"
+    if default_font.exists():
+        return default_font
+    arial = Path("C:/Windows/Fonts/arial.ttf")
+    if arial.exists():
+        return arial
+    return default_font
+
+
 class VideoEditorAgent:
     """Agent responsible for aspect-ratio transformation, typography, subtitle burn-in, motion, and rendering."""
 
-    def __init__(self, ffmpeg_bin: Path, fonts_dir: Path):
-        self.ffmpeg_bin = ffmpeg_bin
-        self.fonts_dir = fonts_dir
+    def __init__(self, ffmpeg_bin: Optional[Path] = None, fonts_dir: Optional[Path] = None):
+        from ffmpeg_utils import get_ffmpeg_bin
+        self.ffmpeg_bin = ffmpeg_bin or get_ffmpeg_bin()
+        self.fonts_dir = fonts_dir or (Path(__file__).parent.parent / "fonts")
         self._nvenc_available: Optional[bool] = None
         self.last_measured_loudness: Optional[Dict[str, float]] = None
 
@@ -236,16 +284,21 @@ class VideoEditorAgent:
         if duration <= 0:
             duration = 30.0
 
-        clean_headline = re.sub(r"[^A-Za-z0-9 \-!?]", "", headline).upper()
+        clean_headline = headline.strip().replace("\r", "").replace("\n", " ")
         if not clean_headline:
-            clean_headline = "VIRAL CLIP"
+            clean_headline = "VIRAL MOMENT"
 
-        # Escaped font path for drawtext (C\:/... on Windows)
+        # Select script-aware font for Unicode (Devanagari, CJK, Arabic, Latin)
+        selected_font = select_script_aware_font(clean_headline, self.fonts_dir)
         font_arg = ""
-        font_file = (self.fonts_dir / "Montserrat-Bold.ttf").resolve()
-        if font_file.exists():
-            escaped_font = str(font_file.as_posix()).replace(":", r"\:")
+        if selected_font.exists():
+            escaped_font = str(selected_font.resolve().as_posix()).replace(":", r"\:")
             font_arg = f"fontfile='{escaped_font}':"
+
+        # Write headline to temporary UTF-8 textfile to preserve full Unicode scripts and symbols
+        headline_txt_path = output_path.parent / f"hl_{uuid.uuid4().hex[:6]}.txt"
+        headline_txt_path.write_text(clean_headline, encoding="utf-8")
+        escaped_hl_path = str(headline_txt_path.resolve().as_posix()).replace(":", r"\:")
 
         # Build filtergraph
         filter_chain = []
@@ -287,11 +340,11 @@ class VideoEditorAgent:
             filter_chain.append(f"{last_v_tag}{punch_in_filter}[punched]")
             last_v_tag = "[punched]"
 
-        # Headline banner
+        # Headline banner with Unicode and script-aware font
         has_subtitles = bool(effective_ass_path and Path(effective_ass_path).exists())
         headline_out_tag = "[with_headline]" if has_subtitles else "[v]"
         filter_chain.append(
-            f"{last_v_tag}drawtext={font_arg}text='{clean_headline}':fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240{headline_out_tag}"
+            f"{last_v_tag}drawtext={font_arg}textfile='{escaped_hl_path}':expansion=none:fontcolor=white:fontsize=48:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=240{headline_out_tag}"
         )
         last_v_tag = headline_out_tag
 
@@ -363,13 +416,13 @@ class VideoEditorAgent:
         else:
             audio_map = "0:a?"
 
+        # Output 1080x1920, h264, aac, preserving native source frame rate (no forced -r 60)
         cmd.extend([
             "-filter_complex", filter_complex_str,
             "-map", last_v_tag,
             "-map", audio_map,
             *vcodec_args,
             "-pix_fmt", "yuv420p",
-            "-r", "60",
         ])
 
         if not has_bgm and not silence_intervals:
@@ -386,22 +439,12 @@ class VideoEditorAgent:
 
         try:
             res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-            if temp_adjusted_ass and temp_adjusted_ass.exists():
-                try:
-                    temp_adjusted_ass.unlink()
-                except Exception:
-                    pass
             # Measure loudness post-mixing
             self.last_measured_loudness = self.measure_loudness(output_path)
             return True
         except subprocess.CalledProcessError as e:
-            if temp_adjusted_ass and temp_adjusted_ass.exists():
-                try:
-                    temp_adjusted_ass.unlink()
-                except Exception:
-                    pass
             if use_nvenc:
-                print(f"[VideoEditorAgent] NVENC failed ({e.stderr[-200:] if e.stderr else ''}), falling back to libx264...")
+                print(f"[VideoEditorAgent] NVENC failed ({e.stderr[-200:] if e.stderr else ''}), retrying once with libx264...")
                 return self.render_short(
                     source_video_path=source_video_path,
                     start_seconds=start_seconds,
@@ -417,5 +460,14 @@ class VideoEditorAgent:
                 )
             print(f"[VideoEditorAgent] FFmpeg error: {e.stderr}")
             return False
-            print(f"[VideoEditorAgent] FFmpeg error: {e.stderr}")
-            return False
+        finally:
+            if headline_txt_path.exists():
+                try:
+                    headline_txt_path.unlink()
+                except Exception:
+                    pass
+            if temp_adjusted_ass and temp_adjusted_ass.exists():
+                try:
+                    temp_adjusted_ass.unlink()
+                except Exception:
+                    pass

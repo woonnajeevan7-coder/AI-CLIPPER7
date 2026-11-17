@@ -177,16 +177,11 @@ class ClipperOrchestratorAgent:
 
         # Automatic genre detection for sports / cricket / gaming
         check_str = f"{source} {transcript_text} {filename or ''}".lower()
-        sports_keywords = [
-            "cricket", "ipl", "t10", "t20", "match", "wicket", "bowler", "batsman",
-            "yorker", "over", "six", "innings", "gameplay", "gaming", "stream",
-            "clutch", "esports", "fortnite", "valorant", "gta", "fifa", "minecraft"
-        ]
-        is_sports_gaming = (
-            framing_mode in ("sports_gaming", "action_crop", "cricket", "gaming")
-            or any(kw in check_str for kw in sports_keywords)
+        effective_framing_mode, matched_kws = SmartFramingAgent.detect_genre_and_framing(
+            text=check_str,
+            explicit_framing_mode=framing_mode
         )
-        effective_framing_mode = framing_mode or ("sports_gaming" if is_sports_gaming else "auto")
+        is_sports_gaming = effective_framing_mode in ("gaming", "sports_gaming", "action_crop", "cricket")
         effective_caption_style = "sports_gaming" if (is_sports_gaming and caption_style == "hormozi") else caption_style
 
         # Step 3: Video Rendering with Smart Framing & Motion Polish

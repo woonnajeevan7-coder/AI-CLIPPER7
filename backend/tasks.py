@@ -4,6 +4,7 @@ Wraps TranscriberAgent, CuratorAgent, JudgeAgent, and EditorAgent as idempotent 
 with exponential-backoff retries and dead-letter failure handling.
 """
 
+from typing import Optional
 from pathlib import Path
 from celery import Celery
 from datetime import datetime, timezone
@@ -28,6 +29,7 @@ celery_app.conf.update(
     enable_utc=True,
     task_acks_late=True,
     worker_prefetch_multiplier=1,
+    worker_concurrency=settings.CELERY_CONCURRENCY,
     broker_connection_timeout=0.5,
     broker_connection_retry=False,
     broker_transport_options={"socket_timeout": 0.5, "socket_connect_timeout": 0.5},
@@ -162,3 +164,33 @@ def process_pipeline_task(self, project_id: str):
         raise exc
     finally:
         db.close()
+
+
+@celery_app.task(
+    bind=True,
+    max_retries=2,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def enhance_fixed_clip_task(self, clip_id: str, framing_mode: Optional[str] = None):
+    """Celery task for automatic rendering of fixed live clips into 9:16 vertical video."""
+    from live.enhancer import enhance_clip_sync
+    res = enhance_clip_sync(clip_id, framing_mode=framing_mode)
+    if not res:
+        raise RuntimeError(f"Enhancement failed for clip {clip_id}")
+    return {"status": "ready", "clip_id": clip_id, "video_url": res.video_url}
+
+
+@celery_app.task(
+    bind=True,
+    max_retries=2,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def enhance_live_clip_task(self, clip_id: str, framing_mode: Optional[str] = None):
+    """Celery task for async lazy rendering of live clips into 9:16 vertical video."""
+    from live.enhancer import enhance_clip_sync
+    res = enhance_clip_sync(clip_id, framing_mode=framing_mode)
+    if not res:
+        raise RuntimeError(f"Enhancement failed for clip {clip_id}")
+    return {"status": "ready", "clip_id": clip_id, "video_url": res.video_url}

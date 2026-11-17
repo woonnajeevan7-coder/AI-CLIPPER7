@@ -118,8 +118,8 @@ def test_render_short_ffmpeg_pipeline(tmp_path: Path):
     assert "1080x1920" in probe_output
     # Check yuv420p
     assert "yuv420p" in probe_output
-    # Check 60 FPS output
-    assert "60 fps" in probe_output or "60 tbr" in probe_output
+    # Check source frame rate preserved (no forced -r 60: 25 fps source yields 25 fps output)
+    assert "25 fps" in probe_output or "25 tbr" in probe_output
     # Check AAC audio stream
     assert "Audio: aac" in probe_output
 
