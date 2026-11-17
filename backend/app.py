@@ -12,6 +12,7 @@ from .config import settings
 from .database import init_db
 from .telemetry import init_sentry, logger
 from .routes import auth, projects, jobs, clips, usage, legal, brand_kit
+from .twitch import router as twitch_router
 
 # Initialize Sentry & database tables
 init_sentry()
@@ -52,6 +53,7 @@ app.include_router(clips.router, prefix=settings.API_V1_PREFIX)
 app.include_router(usage.router, prefix=settings.API_V1_PREFIX)
 app.include_router(legal.router, prefix=settings.API_V1_PREFIX)
 app.include_router(brand_kit.router, prefix=settings.API_V1_PREFIX)
+app.include_router(twitch_router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")

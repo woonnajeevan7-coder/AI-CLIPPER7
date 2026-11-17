@@ -5,9 +5,13 @@ and malicious redirects during media ingestion.
 """
 
 import ipaddress
+import os
 import socket
 from urllib.parse import urlparse
 from typing import Set, Optional
+from cryptography.fernet import Fernet
+
+from .config import settings
 
 
 ALLOWED_MEDIA_DOMAINS: Set[str] = {
@@ -18,6 +22,9 @@ ALLOWED_MEDIA_DOMAINS: Set[str] = {
     "vimeo.com",
     "tiktok.com",
     "instagram.com",
+    "twitch.tv",
+    "www.twitch.tv",
+    "ttvnw.net",
     "storage.googleapis.com",
     "cloudflare.com",
     "r2.cloudflarestorage.com",
@@ -87,3 +94,30 @@ class SSRFGuard:
                 raise SSRFValidationError(f"Access to multicast IP ({ip_str}) is blocked.")
 
         return url.strip()
+
+
+class TokenCipher:
+    """Provides symmetric Fernet token encryption at rest for OAuth tokens and third-party secrets."""
+
+    @classmethod
+    def get_cipher(cls) -> Fernet:
+        key = getattr(settings, "TOKEN_ENCRYPTION_KEY", None) or os.getenv("TOKEN_ENCRYPTION_KEY")
+        if not key:
+            key = "ReuO4DTAmNr_e0_B5Q4bi-A0yiU2nRp38Lua542Q4bs="
+        if isinstance(key, str):
+            key = key.encode("utf-8")
+        return Fernet(key)
+
+    @classmethod
+    def encrypt_token(cls, raw_token: str) -> str:
+        if not raw_token:
+            return ""
+        cipher = cls.get_cipher()
+        return cipher.encrypt(raw_token.encode("utf-8")).decode("utf-8")
+
+    @classmethod
+    def decrypt_token(cls, encrypted_token: str) -> str:
+        if not encrypted_token:
+            return ""
+        cipher = cls.get_cipher()
+        return cipher.decrypt(encrypted_token.encode("utf-8")).decode("utf-8")

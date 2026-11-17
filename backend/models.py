@@ -33,6 +33,9 @@ class User(Base):
     projects = relationship("Project", back_populates="user", cascade="all, delete-orphan")
     usage_records = relationship("Usage", back_populates="user", cascade="all, delete-orphan")
     publish_targets = relationship("PublishTarget", back_populates="user", cascade="all, delete-orphan")
+    social_accounts = relationship("SocialAccount", back_populates="user", cascade="all, delete-orphan")
+    twitch_channels = relationship("TwitchChannel", back_populates="user", cascade="all, delete-orphan")
+    live_sessions = relationship("LiveSession", back_populates="user", cascade="all, delete-orphan")
 
 
 class Project(Base):
@@ -87,7 +90,9 @@ class Clip(Base):
     __tablename__ = "clips"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=True, index=True)
+    live_session_id = Column(String(36), ForeignKey("live_sessions.id", ondelete="CASCADE"), nullable=True, index=True)
+    source = Column(String(50), default="fixed", nullable=False)  # 'fixed' | 'highlight'
     title = Column(String(255), nullable=False)
     headline = Column(String(255), nullable=False)
     start_seconds = Column(Float, nullable=False)
@@ -104,6 +109,7 @@ class Clip(Base):
     created_at = Column(DateTime, default=utc_now, nullable=False)
 
     project = relationship("Project", back_populates="clips")
+    live_session = relationship("LiveSession", back_populates="clips")
     metrics = relationship("ClipMetric", back_populates="clip", cascade="all, delete-orphan")
 
 
@@ -162,3 +168,58 @@ class ClipMetric(Base):
 
     clip = relationship("Clip", back_populates="metrics")
     publish_target = relationship("PublishTarget", back_populates="metrics")
+
+
+class SocialAccount(Base):
+    __tablename__ = "social_accounts"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider = Column(String(50), nullable=False)  # 'twitch', 'youtube', etc.
+    provider_user_id = Column(String(100), nullable=False, index=True)
+    encrypted_access_token = Column(Text, nullable=False)
+    encrypted_refresh_token = Column(Text, nullable=True)
+    token_expires_at = Column(DateTime, nullable=True)
+    scope = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    user = relationship("User", back_populates="social_accounts")
+
+
+class TwitchChannel(Base):
+    __tablename__ = "twitch_channels"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    broadcaster_id = Column(String(100), nullable=False, index=True)
+    login = Column(String(100), nullable=False)
+    display_name = Column(String(100), nullable=True)
+    rights_confirmed = Column(Boolean, default=False, nullable=False)
+    eventsub_subscription_id_online = Column(String(100), nullable=True)
+    eventsub_subscription_id_offline = Column(String(100), nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
+
+    user = relationship("User", back_populates="twitch_channels")
+
+
+class LiveSession(Base):
+    __tablename__ = "live_sessions"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    broadcaster_id = Column(String(100), nullable=True, index=True)
+    title = Column(String(255), nullable=False)
+    stream_url = Column(Text, nullable=False)
+    platform = Column(String(50), default="twitch", nullable=False)
+    status = Column(String(50), default="starting", nullable=False)  # 'starting', 'live', 'stopping', 'stopped', 'failed'
+    rights_confirmed = Column(Boolean, default=False, nullable=False)
+    target_framing = Column(String(50), default="sports_gaming")
+    caption_style = Column(String(50), default="sports_gaming")
+    started_at = Column(DateTime, nullable=True)
+    stopped_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+
+    user = relationship("User", back_populates="live_sessions")
+    clips = relationship("Clip", back_populates="live_session", cascade="all, delete-orphan")

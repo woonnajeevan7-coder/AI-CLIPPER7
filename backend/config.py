@@ -20,6 +20,14 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     JWT_SECRET_KEY: str
+    TOKEN_ENCRYPTION_KEY: str = os.getenv("TOKEN_ENCRYPTION_KEY", "ReuO4DTAmNr_e0_B5Q4bi-A0yiU2nRp38Lua542Q4bs=")
+
+    # Twitch Integration & EventSub
+    TWITCH_CLIENT_ID: str = os.getenv("TWITCH_CLIENT_ID", "")
+    TWITCH_CLIENT_SECRET: str = os.getenv("TWITCH_CLIENT_SECRET", "")
+    TWITCH_REDIRECT_URI: str = os.getenv("TWITCH_REDIRECT_URI", "http://localhost:8000/api/v1/twitch/callback")
+    TWITCH_EVENTSUB_SECRET: str = os.getenv("TWITCH_EVENTSUB_SECRET", "default_test_eventsub_secret_32b")
+    TWITCH_WEBHOOK_CALLBACK_URL: str = os.getenv("TWITCH_WEBHOOK_CALLBACK_URL", "")
 
     # Groq Engine Brain
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
