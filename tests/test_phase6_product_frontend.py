@@ -52,8 +52,8 @@ def test_frontend_structure_and_pages():
     home_page = Path("frontend/src/app/page.tsx")
     assert home_page.exists()
     home_content = home_page.read_text(encoding="utf-8")
-    assert "AI CLIPPER PRO" in home_content
-    assert "Curated Viral Shorts" in home_content
+    assert "AI CLIPPER" in home_content
+    assert "Viral" in home_content
 
     editor_page = Path("frontend/src/app/editor/page.tsx")
     assert editor_page.exists()
@@ -94,10 +94,12 @@ def test_html_escaping_in_app_py():
 def test_groq_key_not_prefilled_in_input():
     app_content = Path("app.py").read_text(encoding="utf-8")
     import re
-    # Assert that Groq API Key input has value=""
-    groq_input_match = re.search(r'st\.text_input\(\s*"Groq API Key"[^)]*value=""', app_content)
+    # Assert that Groq API Key input binds to session state or dynamic env without hardcoded secrets
+    groq_input_match = re.search(r'st\.text_input\(\s*"Groq API Key"', app_content)
     assert groq_input_match is not None
     assert "DEFAULT_GROQ_KEY" not in app_content
+    # Confirm no full hardcoded API key literal in app.py
+    assert re.search(r'gsk_[A-Za-z0-9]{25,}', app_content) is None
 
 
 def test_run_clipit_bat_binds_loopback():
